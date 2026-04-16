@@ -1,0 +1,39 @@
+name: ioauto-local
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ioauto_local_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ioauto_appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-ioauto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ioauto}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - ioauto_local_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ioauto} -d ${POSTGRES_DB:-ioauto_appdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    container_name: ioauto_local_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    volumes:
+      - ioauto_local_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  ioauto_local_pgdata:
+  ioauto_local_redisdata:

@@ -1,0 +1,11 @@
+{
+  "/api/crm/state/route": "/api/crm/state",
+  "/api/atendimentos/conversations/route": "/api/atendimentos/conversations",
+  "/api/relatorios/atendimentos/overview/route": "/api/relatorios/atendimentos/overview",
+  "/api/relatorios/atendimentos/users/route": "/api/relatorios/atendimentos/users",
+  "/api/atendimentos/users/route": "/api/atendimentos/users",
+  "/api/relatorios/atendimentos/results/route": "/api/relatorios/atendimentos/results",
+  "/_not-found/page": "/_not-found",
+  "/protected/relatorios/page": "/protected/relatorios",
+  "/protected/dashboard/page": "/protected/dashboard"
+}

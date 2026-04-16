@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --io-purple: #6d5efc;
+    --io-purple-2: #9f8cff;
+    --io-dark: #121212;
+    --io-white: #ffffff;
+    --io-light: #f3f3f3;
+    --io-slate: #7a7a7a;
+    --io-panel: #ebebeb;
+
+    --background: 0 0% 95%;
+    --foreground: 0 0% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --primary: 248 96% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 42%;
+
+    --border: 0 0% 86%;
+    --ring: 248 96% 68%;
+}
+
+.dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 14%;
+    --card-foreground: 0 0% 100%;
+
+    --border: 0 0% 24%;
+    --ring: 248 96% 68%;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at top left, rgba(109, 94, 252, 0.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.08), transparent 24%),
+        #f3f3f3;
+    color: #121212;
+    font-family: var(--font-body), sans-serif;
+}
+
+.font-display {
+    font-family: var(--font-display), sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.io-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.io-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+}

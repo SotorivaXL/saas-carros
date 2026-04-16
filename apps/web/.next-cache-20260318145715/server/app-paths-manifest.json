@@ -1,0 +1,7 @@
+{
+  "/api/crm/state/route": "app/api/crm/state/route.js",
+  "/api/atendimentos/conversations/route": "app/api/atendimentos/conversations/route.js",
+  "/protected/dashboard/page": "app/protected/dashboard/page.js",
+  "/login/page": "app/login/page.js",
+  "/protected/relatorios/page": "app/protected/relatorios/page.js"
+}

@@ -1,0 +1,266 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "dynamicRoutes": [
+    {
+      "page": "/ai/supervisores/[id]",
+      "regex": "^/ai/supervisores/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/ai/supervisores/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/ai/supervisores/[id]/distribuicao",
+      "regex": "^/ai/supervisores/([^/]+?)/distribuicao(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/ai/supervisores/(?<nxtPid>[^/]+?)/distribuicao(?:/)?$"
+    },
+    {
+      "page": "/api/ai-supervisors/[id]",
+      "regex": "^/api/ai\\-supervisors/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/ai\\-supervisors/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/ai-supervisors/[id]/distribution",
+      "regex": "^/api/ai\\-supervisors/([^/]+?)/distribution(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/ai\\-supervisors/(?<nxtPid>[^/]+?)/distribution(?:/)?$"
+    },
+    {
+      "page": "/api/ai-supervisors/[id]/simulate",
+      "regex": "^/api/ai\\-supervisors/([^/]+?)/simulate(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/ai\\-supervisors/(?<nxtPid>[^/]+?)/simulate(?:/)?$"
+    },
+    {
+      "page": "/api/atendimentos/conversations/[id]/conclude",
+      "regex": "^/api/atendimentos/conversations/([^/]+?)/conclude(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/atendimentos/conversations/(?<nxtPid>[^/]+?)/conclude(?:/)?$"
+    },
+    {
+      "page": "/api/atendimentos/conversations/[id]/labels",
+      "regex": "^/api/atendimentos/conversations/([^/]+?)/labels(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/atendimentos/conversations/(?<nxtPid>[^/]+?)/labels(?:/)?$"
+    },
+    {
+      "page": "/api/atendimentos/conversations/[id]/messages",
+      "regex": "^/api/atendimentos/conversations/([^/]+?)/messages(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/atendimentos/conversations/(?<nxtPid>[^/]+?)/messages(?:/)?$"
+    },
+    {
+      "page": "/api/atendimentos/conversations/[id]/start",
+      "regex": "^/api/atendimentos/conversations/([^/]+?)/start(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/atendimentos/conversations/(?<nxtPid>[^/]+?)/start(?:/)?$"
+    },
+    {
+      "page": "/api/atendimentos/conversations/[id]/transfer",
+      "regex": "^/api/atendimentos/conversations/([^/]+?)/transfer(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/atendimentos/conversations/(?<nxtPid>[^/]+?)/transfer(?:/)?$"
+    },
+    {
+      "page": "/api/auth/companies/[id]",
+      "regex": "^/api/auth/companies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/auth/companies/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/auth/users/[id]",
+      "regex": "^/api/auth/users/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/auth/users/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/protected/ai/supervisores/[id]",
+      "regex": "^/protected/ai/supervisores/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/protected/ai/supervisores/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/protected/ai/supervisores/[id]/distribuicao",
+      "regex": "^/protected/ai/supervisores/([^/]+?)/distribuicao(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/protected/ai/supervisores/(?<nxtPid>[^/]+?)/distribuicao(?:/)?$"
+    },
+    {
+      "page": "/protected/atendimentos/[id]",
+      "regex": "^/protected/atendimentos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/protected/atendimentos/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/ai/supervisores",
+      "regex": "^/ai/supervisores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ai/supervisores(?:/)?$"
+    },
+    {
+      "page": "/ai/supervisores/novo",
+      "regex": "^/ai/supervisores/novo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ai/supervisores/novo(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/protected",
+      "regex": "^/protected(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected(?:/)?$"
+    },
+    {
+      "page": "/protected/admin",
+      "regex": "^/protected/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/admin(?:/)?$"
+    },
+    {
+      "page": "/protected/agentes-ia",
+      "regex": "^/protected/agentes\\-ia(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/agentes\\-ia(?:/)?$"
+    },
+    {
+      "page": "/protected/ai/supervisores",
+      "regex": "^/protected/ai/supervisores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/ai/supervisores(?:/)?$"
+    },
+    {
+      "page": "/protected/ai/supervisores/novo",
+      "regex": "^/protected/ai/supervisores/novo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/ai/supervisores/novo(?:/)?$"
+    },
+    {
+      "page": "/protected/atendimentos",
+      "regex": "^/protected/atendimentos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/atendimentos(?:/)?$"
+    },
+    {
+      "page": "/protected/configuracoes",
+      "regex": "^/protected/configuracoes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/configuracoes(?:/)?$"
+    },
+    {
+      "page": "/protected/crm",
+      "regex": "^/protected/crm(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/crm(?:/)?$"
+    },
+    {
+      "page": "/protected/dashboard",
+      "regex": "^/protected/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/dashboard(?:/)?$"
+    },
+    {
+      "page": "/protected/documentos",
+      "regex": "^/protected/documentos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/documentos(?:/)?$"
+    },
+    {
+      "page": "/protected/kanban",
+      "regex": "^/protected/kanban(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/kanban(?:/)?$"
+    },
+    {
+      "page": "/protected/relatorios",
+      "regex": "^/protected/relatorios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/protected/relatorios(?:/)?$"
+    },
+    {
+      "page": "/public/login",
+      "regex": "^/public/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/public/login(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "RSC",
+    "varyHeader": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "prefetchHeader": "Next-Router-Prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "Next-Router-Segment-Prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  },
+  "rewrites": []
+}

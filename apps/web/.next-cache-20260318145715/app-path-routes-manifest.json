@@ -1,0 +1,7 @@
+{
+  "/api/crm/state/route": "/api/crm/state",
+  "/api/atendimentos/conversations/route": "/api/atendimentos/conversations",
+  "/protected/dashboard/page": "/protected/dashboard",
+  "/login/page": "/login",
+  "/protected/relatorios/page": "/protected/relatorios"
+}

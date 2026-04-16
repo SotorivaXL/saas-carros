@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+
+export async function POST() {
+    return NextResponse.json({ message: "Modulo de agentes de IA removido do IOAuto." }, { status: 410 });
+}

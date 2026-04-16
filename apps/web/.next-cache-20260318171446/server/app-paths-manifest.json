@@ -1,0 +1,11 @@
+{
+  "/api/relatorios/atendimentos/overview/route": "app/api/relatorios/atendimentos/overview/route.js",
+  "/api/relatorios/atendimentos/users/route": "app/api/relatorios/atendimentos/users/route.js",
+  "/api/atendimentos/users/route": "app/api/atendimentos/users/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/crm/state/route": "app/api/crm/state/route.js",
+  "/api/relatorios/atendimentos/results/route": "app/api/relatorios/atendimentos/results/route.js",
+  "/api/realtime/token/route": "app/api/realtime/token/route.js",
+  "/api/atendimentos/conversations/route": "app/api/atendimentos/conversations/route.js",
+  "/protected/relatorios/page": "app/protected/relatorios/page.js"
+}

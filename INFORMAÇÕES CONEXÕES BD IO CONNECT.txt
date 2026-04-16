@@ -1,0 +1,11 @@
+INFORMAÇÕES CONEXÕES BD IO CONNECT
+
+Host: localhost
+
+Porta: 5432
+
+DB: appdb
+
+User: app
+
+Pass: app

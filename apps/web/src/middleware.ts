@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
+
+const ACCESS_COOKIE = "io_access";
+const REFRESH_COOKIE = "io_refresh";
+function isProtected(pathname: string) {
+    return pathname.startsWith("/") && !pathname.startsWith("/login") && !pathname.startsWith("/api");
+}
+
+function isAdminRoute(pathname: string) {
+    return pathname.startsWith("/protected/admin");
+}
+
+export async function middleware(req: NextRequest) {
+    const { pathname } = req.nextUrl;
+
+    if (!isProtected(pathname)) return NextResponse.next();
+
+    const token = req.cookies.get(ACCESS_COOKIE)?.value;
+    if (!token) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
+    }
+
+    try {
+        const secret = process.env.JWT_SECRET_FOR_MIDDLEWARE;
+        if (!secret) {
+            if (isAdminRoute(pathname)) {
+                const url = req.nextUrl.clone();
+                url.pathname = "/protected/dashboard";
+                return NextResponse.redirect(url);
+            }
+            return NextResponse.next();
+        }
+
+        const key = new TextEncoder().encode(secret);
+        const { payload } = await jwtVerify(token, key);
+
+        const roles = (payload.roles as string[]) ?? [];
+
+        if (isAdminRoute(pathname) && !roles.includes("ADMIN") && !roles.includes("SUPERADMIN")) {
+            const url = req.nextUrl.clone();
+            url.pathname = "/protected/dashboard";
+            return NextResponse.redirect(url);
+        }
+
+        return NextResponse.next();
+    } catch {
+        const url = req.nextUrl.clone();
+        url.pathname = "/login";
+        const res = NextResponse.redirect(url);
+        res.cookies.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 });
+        res.cookies.set(REFRESH_COOKIE, "", { path: "/", maxAge: 0 });
+        return res;
+    }
+}
+
+export const config = {
+    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
