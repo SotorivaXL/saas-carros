@@ -1,0 +1,127 @@
+package com.io.appioweb.adapters.persistence.auth;
+
+import com.io.appioweb.application.auth.port.out.CompanyRepositoryPort;
+import com.io.appioweb.domain.auth.entity.Company;
+
+import java.util.List;
+import java.util.Optional;
+
+public class CompanyRepositoryAdapter implements CompanyRepositoryPort {
+    private final CompanyRepositoryJpa jpa;
+
+    public CompanyRepositoryAdapter(CompanyRepositoryJpa jpa) {
+        this.jpa = jpa;
+    }
+
+    @Override
+    public Optional<Company> findById(java.util.UUID id) {
+        return jpa.findById(id).map(entity -> new Company(
+                entity.getId(),
+                entity.getName(),
+                entity.getProfileImageUrl(),
+                entity.getEmail(),
+                entity.getContractEndDate(),
+                entity.getCnpj(),
+                entity.getOpenedAt(),
+                entity.getWhatsappNumber(),
+                entity.getZapiInstanceId(),
+                entity.getZapiInstanceToken(),
+                entity.getZapiClientToken(),
+                entity.getBusinessHoursStart(),
+                entity.getBusinessHoursEnd(),
+                entity.getBusinessHoursWeeklyJson(),
+                entity.getCreatedAt()
+        ));
+    }
+
+    @Override
+    public Optional<Company> findByEmail(String email) {
+        return jpa.findByEmail(email.toLowerCase()).map(entity -> new Company(
+                entity.getId(),
+                entity.getName(),
+                entity.getProfileImageUrl(),
+                entity.getEmail(),
+                entity.getContractEndDate(),
+                entity.getCnpj(),
+                entity.getOpenedAt(),
+                entity.getWhatsappNumber(),
+                entity.getZapiInstanceId(),
+                entity.getZapiInstanceToken(),
+                entity.getZapiClientToken(),
+                entity.getBusinessHoursStart(),
+                entity.getBusinessHoursEnd(),
+                entity.getBusinessHoursWeeklyJson(),
+                entity.getCreatedAt()
+        ));
+    }
+
+    @Override
+    public Optional<Company> findByZapiInstanceId(String zapiInstanceId) {
+        return jpa.findByZapiInstanceId(zapiInstanceId).map(entity -> new Company(
+                entity.getId(),
+                entity.getName(),
+                entity.getProfileImageUrl(),
+                entity.getEmail(),
+                entity.getContractEndDate(),
+                entity.getCnpj(),
+                entity.getOpenedAt(),
+                entity.getWhatsappNumber(),
+                entity.getZapiInstanceId(),
+                entity.getZapiInstanceToken(),
+                entity.getZapiClientToken(),
+                entity.getBusinessHoursStart(),
+                entity.getBusinessHoursEnd(),
+                entity.getBusinessHoursWeeklyJson(),
+                entity.getCreatedAt()
+        ));
+    }
+
+    @Override
+    public List<Company> findAll() {
+        return jpa.findAll().stream()
+                .map(entity -> new Company(
+                        entity.getId(),
+                        entity.getName(),
+                        entity.getProfileImageUrl(),
+                        entity.getEmail(),
+                        entity.getContractEndDate(),
+                        entity.getCnpj(),
+                        entity.getOpenedAt(),
+                        entity.getWhatsappNumber(),
+                        entity.getZapiInstanceId(),
+                        entity.getZapiInstanceToken(),
+                        entity.getZapiClientToken(),
+                        entity.getBusinessHoursStart(),
+                        entity.getBusinessHoursEnd(),
+                        entity.getBusinessHoursWeeklyJson(),
+                        entity.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public void deleteById(java.util.UUID id) {
+        jpa.deleteById(id);
+    }
+
+    @Override
+    public void save(Company company) {
+        JpaCompanyEntity entity = new JpaCompanyEntity();
+        entity.setId(company.id());
+        entity.setName(company.name());
+        entity.setProfileImageUrl(company.profileImageUrl());
+        entity.setEmail(company.email());
+        entity.setContractEndDate(company.contractEndDate());
+        entity.setCnpj(company.cnpj());
+        entity.setOpenedAt(company.openedAt());
+        entity.setWhatsappNumber(company.whatsappNumber());
+        entity.setZapiInstanceId(company.zapiInstanceId());
+        entity.setZapiInstanceToken(company.zapiInstanceToken());
+        entity.setZapiClientToken(company.zapiClientToken());
+        entity.setBusinessHoursStart(company.businessHoursStart());
+        entity.setBusinessHoursEnd(company.businessHoursEnd());
+        entity.setBusinessHoursWeeklyJson(company.businessHoursWeeklyJson());
+        entity.setCreatedAt(company.createdAt());
+        jpa.save(entity);
+    }
+}

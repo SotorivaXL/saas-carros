@@ -1,0 +1,23 @@
+package com.io.appioweb.domain.auth.entity;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+public record Company(
+        UUID id,
+        String name,
+        String profileImageUrl,
+        String email,
+        LocalDate contractEndDate,
+        String cnpj,
+        LocalDate openedAt,
+        String whatsappNumber,
+        String zapiInstanceId,
+        String zapiInstanceToken,
+        String zapiClientToken,
+        String businessHoursStart,
+        String businessHoursEnd,
+        String businessHoursWeeklyJson,
+        Instant createdAt
+) {}

@@ -1,0 +1,300 @@
+package com.io.appioweb.adapters.persistence.ioauto;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "ioauto_vehicles")
+public class JpaIoAutoVehicleEntity {
+
+    @Id
+    private UUID id;
+
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
+    @Column(name = "stock_number", length = 80)
+    private String stockNumber;
+
+    @Column(nullable = false, length = 200)
+    private String title;
+
+    @Column(nullable = false, length = 120)
+    private String brand;
+
+    @Column(nullable = false, length = 120)
+    private String model;
+
+    @Column(length = 160)
+    private String version;
+
+    @Column(name = "model_year")
+    private Integer modelYear;
+
+    @Column(name = "manufacture_year")
+    private Integer manufactureYear;
+
+    @Column(name = "price_cents")
+    private Long priceCents;
+
+    @Column
+    private Integer mileage;
+
+    @Column(length = 40)
+    private String transmission;
+
+    @Column(name = "fuel_type", length = 40)
+    private String fuelType;
+
+    @Column(name = "body_type", length = 60)
+    private String bodyType;
+
+    @Column(length = 60)
+    private String color;
+
+    @Column(name = "plate_final", length = 10)
+    private String plateFinal;
+
+    @Column(length = 120)
+    private String city;
+
+    @Column(length = 20)
+    private String state;
+
+    @Column(nullable = false)
+    private boolean featured;
+
+    @Column(nullable = false, length = 40)
+    private String status;
+
+    @Column(columnDefinition = "text")
+    private String description;
+
+    @Column(name = "cover_image_url", columnDefinition = "text")
+    private String coverImageUrl;
+
+    @Column(name = "gallery_json", nullable = false, columnDefinition = "text")
+    private String galleryJson = "[]";
+
+    @Column(name = "optionals_json", nullable = false, columnDefinition = "text")
+    private String optionalsJson = "[]";
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UUID getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(UUID companyId) {
+        this.companyId = companyId;
+    }
+
+    public String getStockNumber() {
+        return stockNumber;
+    }
+
+    public void setStockNumber(String stockNumber) {
+        this.stockNumber = stockNumber;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public Integer getModelYear() {
+        return modelYear;
+    }
+
+    public void setModelYear(Integer modelYear) {
+        this.modelYear = modelYear;
+    }
+
+    public Integer getManufactureYear() {
+        return manufactureYear;
+    }
+
+    public void setManufactureYear(Integer manufactureYear) {
+        this.manufactureYear = manufactureYear;
+    }
+
+    public Long getPriceCents() {
+        return priceCents;
+    }
+
+    public void setPriceCents(Long priceCents) {
+        this.priceCents = priceCents;
+    }
+
+    public Integer getMileage() {
+        return mileage;
+    }
+
+    public void setMileage(Integer mileage) {
+        this.mileage = mileage;
+    }
+
+    public String getTransmission() {
+        return transmission;
+    }
+
+    public void setTransmission(String transmission) {
+        this.transmission = transmission;
+    }
+
+    public String getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(String fuelType) {
+        this.fuelType = fuelType;
+    }
+
+    public String getBodyType() {
+        return bodyType;
+    }
+
+    public void setBodyType(String bodyType) {
+        this.bodyType = bodyType;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public String getPlateFinal() {
+        return plateFinal;
+    }
+
+    public void setPlateFinal(String plateFinal) {
+        this.plateFinal = plateFinal;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public boolean isFeatured() {
+        return featured;
+    }
+
+    public void setFeatured(boolean featured) {
+        this.featured = featured;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCoverImageUrl() {
+        return coverImageUrl;
+    }
+
+    public void setCoverImageUrl(String coverImageUrl) {
+        this.coverImageUrl = coverImageUrl;
+    }
+
+    public String getGalleryJson() {
+        return galleryJson;
+    }
+
+    public void setGalleryJson(String galleryJson) {
+        this.galleryJson = galleryJson;
+    }
+
+    public String getOptionalsJson() {
+        return optionalsJson;
+    }
+
+    public void setOptionalsJson(String optionalsJson) {
+        this.optionalsJson = optionalsJson;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

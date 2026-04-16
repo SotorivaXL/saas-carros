@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+      - optional:file:../../.env[.properties]
+  profiles:
+    active: local
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+app:
+  security:
+    jwt:
+      issuer: "app-io-web"
+      access-ttl-minutes: 15
+      refresh-ttl-days: 7
