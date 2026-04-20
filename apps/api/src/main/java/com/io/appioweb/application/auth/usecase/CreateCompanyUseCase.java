@@ -58,6 +58,10 @@ public class CreateCompanyUseCase implements CompanyAdminUseCase {
         if (cnpjDigits.length() != 14) {
             throw new BusinessException("COMPANY_INVALID_CNPJ", "CNPJ invalido");
         }
+        String whatsappDigits = onlyDigits(command.whatsappNumber());
+        if (whatsappDigits.length() < 10 || whatsappDigits.length() > 11) {
+            throw new BusinessException("COMPANY_INVALID_WHATSAPP", "Telefone da empresa invalido");
+        }
 
         UUID companyId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
@@ -72,7 +76,7 @@ public class CreateCompanyUseCase implements CompanyAdminUseCase {
                 command.contractEndDate(),
                 cnpjDigits,
                 command.openedAt(),
-                "",
+                whatsappDigits,
                 "",
                 "",
                 "",

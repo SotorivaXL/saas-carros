@@ -10,6 +10,7 @@ type CreateCompanyBody = {
     contractEndDate?: string;
     cnpj?: string;
     openedAt?: string;
+    whatsappNumber?: string;
     password?: string;
     businessHoursStart?: string;
     businessHoursEnd?: string;
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
         !body?.contractEndDate ||
         !body?.cnpj ||
         !body?.openedAt ||
+        !body?.whatsappNumber ||
         !body?.password ||
         !body?.businessHoursStart ||
         !body?.businessHoursEnd ||

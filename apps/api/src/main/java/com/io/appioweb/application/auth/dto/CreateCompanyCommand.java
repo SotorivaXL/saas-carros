@@ -13,6 +13,7 @@ public record CreateCompanyCommand(
         @NotNull LocalDate contractEndDate,
         @NotBlank String cnpj,
         @NotNull LocalDate openedAt,
+        @NotBlank String whatsappNumber,
         @NotBlank String password,
         @NotBlank String businessHoursStart,
         @NotBlank String businessHoursEnd,

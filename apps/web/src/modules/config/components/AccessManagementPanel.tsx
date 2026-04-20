@@ -85,6 +85,7 @@ type Company = {
     contractEndDate?: string | null;
     cnpj?: string | null;
     openedAt?: string | null;
+    whatsappNumber?: string | null;
     businessHoursStart?: string | null;
     businessHoursEnd?: string | null;
     businessHoursWeekly?: Partial<Record<BusinessWeekDayKey, Partial<BusinessHoursDay>>> | null;
@@ -98,6 +99,7 @@ type CompanyCreateForm = {
     contractEndDate: string;
     cnpj: string;
     openedAt: string;
+    whatsappNumber: string;
     password: string;
     businessHoursStart: string;
     businessHoursEnd: string;
@@ -202,6 +204,7 @@ function getInitialCompanyCreateForm(): CompanyCreateForm {
         contractEndDate: "",
         cnpj: "",
         openedAt: "",
+        whatsappNumber: "",
         password: "",
         businessHoursStart: "09:00",
         businessHoursEnd: "18:00",
@@ -245,6 +248,18 @@ function formatCnpj(value: string) {
     if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
     if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
     return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function normalizePhone(value: string) {
+    return value.replace(/\D/g, "");
+}
+
+function formatPhoneInput(value: string) {
+    const digits = normalizePhone(value).slice(0, 11);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
 function toDateInputValue(value?: string | null) {
@@ -707,6 +722,8 @@ export function AccessManagementPanel() {
             companyCreateForm.contractEndDate.trim().length > 0 &&
             companyCreateForm.cnpj.replace(/\D/g, "").length === 14 &&
             companyCreateForm.openedAt.trim().length > 0 &&
+            normalizePhone(companyCreateForm.whatsappNumber).length >= 10 &&
+            normalizePhone(companyCreateForm.whatsappNumber).length <= 11 &&
             companyCreateForm.password.trim().length > 0
         );
     }
@@ -772,7 +789,9 @@ export function AccessManagementPanel() {
             companyEditForm.companyEmail.trim().length > 0 &&
             companyEditForm.contractEndDate.trim().length > 0 &&
             companyEditForm.cnpj.replace(/\D/g, "").length === 14 &&
-            companyEditForm.openedAt.trim().length > 0
+            companyEditForm.openedAt.trim().length > 0 &&
+            normalizePhone(companyEditForm.whatsappNumber).length >= 10 &&
+            normalizePhone(companyEditForm.whatsappNumber).length <= 11
         );
     }
 
@@ -1109,6 +1128,7 @@ export function AccessManagementPanel() {
         const payload = {
             ...companyCreateForm,
             cnpj: companyCreateForm.cnpj.replace(/\D/g, ""),
+            whatsappNumber: normalizePhone(companyCreateForm.whatsappNumber),
             businessHoursStart: legacyRange.businessHoursStart,
             businessHoursEnd: legacyRange.businessHoursEnd,
             businessHoursWeekly: companyCreateForm.businessHoursWeekly,
@@ -1152,6 +1172,7 @@ export function AccessManagementPanel() {
             contractEndDate: companyEditForm.contractEndDate,
             cnpj: companyEditForm.cnpj.replace(/\D/g, ""),
             openedAt: companyEditForm.openedAt,
+            whatsappNumber: normalizePhone(companyEditForm.whatsappNumber),
             businessHoursStart: legacyRange.businessHoursStart,
             businessHoursEnd: legacyRange.businessHoursEnd,
             businessHoursWeekly: companyEditForm.businessHoursWeekly,
@@ -1566,7 +1587,7 @@ export function AccessManagementPanel() {
             {view === "companies" && isSuperAdmin && (
                 <section className="mt-4 rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
                     <div className="mb-3 flex justify-between"><h2 className="font-semibold">Empresas</h2><div className="flex gap-2"><button type="button" onClick={() => { setCompanyCreateForm(getInitialCompanyCreateForm()); setCompanyCreateStep(1); setShowCompanyPassword(false); setCompanyModalMsg(null); setModal({ type: "create-company" }); }} className="rounded-xl bg-io-purple2 px-3 py-2 text-sm font-semibold text-white">Novo</button></div></div>
-                    <div className="grid gap-2">{companies.map((c) => <div key={c.id} className="rounded-xl border border-black/10 p-3"><div className="flex justify-between gap-3"><div><p className="font-medium">{c.name}</p><p className="text-xs text-black/60">{c.email ?? "sem-email@empresa.com"}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setCompanyEditForm({ profileImageUrl: c.profileImageUrl ?? "", companyName: c.name ?? "", companyEmail: c.email ?? "", contractEndDate: toDateInputValue(c.contractEndDate), cnpj: formatCnpj(c.cnpj ?? ""), openedAt: toDateInputValue(c.openedAt), password: "", businessHoursStart: c.businessHoursStart ?? "09:00", businessHoursEnd: c.businessHoursEnd ?? "18:00", businessHoursWeekly: normalizeBusinessHoursWeekly(c.businessHoursWeekly) }); setCompanyEditStep(1); setShowCompanyEditPassword(false); setCompanyEditModalMsg(null); setModal({ type: "edit-company", item: c }); }} className="rounded-lg border px-2 py-1 text-xs">Editar</button><button type="button" onClick={() => setModal({ type: "delete-company", item: c })} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">Excluir</button></div></div></div>)}</div>
+                    <div className="grid gap-2">{companies.map((c) => <div key={c.id} className="rounded-xl border border-black/10 p-3"><div className="flex justify-between gap-3"><div><p className="font-medium">{c.name}</p><p className="text-xs text-black/60">{c.email ?? "sem-email@empresa.com"}</p><p className="text-xs text-black/50">{c.whatsappNumber ? formatPhoneInput(c.whatsappNumber) : "Telefone não informado"}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setCompanyEditForm({ profileImageUrl: c.profileImageUrl ?? "", companyName: c.name ?? "", companyEmail: c.email ?? "", contractEndDate: toDateInputValue(c.contractEndDate), cnpj: formatCnpj(c.cnpj ?? ""), openedAt: toDateInputValue(c.openedAt), whatsappNumber: formatPhoneInput(c.whatsappNumber ?? ""), password: "", businessHoursStart: c.businessHoursStart ?? "09:00", businessHoursEnd: c.businessHoursEnd ?? "18:00", businessHoursWeekly: normalizeBusinessHoursWeekly(c.businessHoursWeekly) }); setCompanyEditStep(1); setShowCompanyEditPassword(false); setCompanyEditModalMsg(null); setModal({ type: "edit-company", item: c }); }} className="rounded-lg border px-2 py-1 text-xs">Editar</button><button type="button" onClick={() => setModal({ type: "delete-company", item: c })} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">Excluir</button></div></div></div>)}</div>
                 </section>
             )}
 
@@ -1889,6 +1910,7 @@ export function AccessManagementPanel() {
                                 <input type="file" accept="image/*" className="h-10 rounded-xl border px-3 py-2 text-sm" onChange={async (e) => { try { await handleCompanyProfileImage(e.target.files?.[0] ?? null); } catch { setCompanyModalMsg("Falha ao carregar imagem."); } }} />
                                 <input value={companyCreateForm.companyName} onChange={(e) => setCompanyCreateForm((p) => ({ ...p, companyName: e.target.value }))} placeholder="Nome da empresa" className="h-10 rounded-xl border px-3" required />
                                 <input value={companyCreateForm.companyEmail} onChange={(e) => setCompanyCreateForm((p) => ({ ...p, companyEmail: e.target.value }))} placeholder="E-mail da empresa" type="email" className="h-10 rounded-xl border px-3" required />
+                                <input value={companyCreateForm.whatsappNumber} onChange={(e) => setCompanyCreateForm((p) => ({ ...p, whatsappNumber: formatPhoneInput(e.target.value) }))} placeholder="Telefone da empresa" inputMode="tel" maxLength={15} className="h-10 rounded-xl border px-3" required />
                                 <label className="text-xs text-black/70">Data final do contrato</label>
                                 <input value={companyCreateForm.contractEndDate} onChange={(e) => setCompanyCreateForm((p) => ({ ...p, contractEndDate: e.target.value }))} type="date" className="h-10 rounded-xl border px-3" required />
                                 <input value={companyCreateForm.cnpj} onChange={(e) => setCompanyCreateForm((p) => ({ ...p, cnpj: formatCnpj(e.target.value) }))} placeholder="CNPJ" inputMode="numeric" maxLength={18} className="h-10 rounded-xl border px-3" required />
@@ -2006,6 +2028,7 @@ export function AccessManagementPanel() {
                                 <input type="file" accept="image/*" className="h-10 rounded-xl border px-3 py-2 text-sm" onChange={async (e) => { try { await handleCompanyEditProfileImage(e.target.files?.[0] ?? null); } catch { setCompanyEditModalMsg("Falha ao carregar imagem."); } }} />
                                 <input value={companyEditForm.companyName} onChange={(e) => setCompanyEditForm((p) => ({ ...p, companyName: e.target.value }))} placeholder="Nome da empresa" className="h-10 rounded-xl border px-3" required />
                                 <input value={companyEditForm.companyEmail} onChange={(e) => setCompanyEditForm((p) => ({ ...p, companyEmail: e.target.value }))} placeholder="E-mail da empresa" type="email" className="h-10 rounded-xl border px-3" required />
+                                <input value={companyEditForm.whatsappNumber} onChange={(e) => setCompanyEditForm((p) => ({ ...p, whatsappNumber: formatPhoneInput(e.target.value) }))} placeholder="Telefone da empresa" inputMode="tel" maxLength={15} className="h-10 rounded-xl border px-3" required />
                                 <label className="text-xs text-black/70">Data final do contrato</label>
                                 <input value={companyEditForm.contractEndDate} onChange={(e) => setCompanyEditForm((p) => ({ ...p, contractEndDate: e.target.value }))} type="date" className="h-10 rounded-xl border px-3" required />
                                 <input value={companyEditForm.cnpj} onChange={(e) => setCompanyEditForm((p) => ({ ...p, cnpj: formatCnpj(e.target.value) }))} placeholder="CNPJ" inputMode="numeric" maxLength={18} className="h-10 rounded-xl border px-3" required />

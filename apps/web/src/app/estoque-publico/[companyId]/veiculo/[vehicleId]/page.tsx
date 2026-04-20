@@ -7,8 +7,8 @@ export default async function EstoquePublicoVeiculoPage({
 }: {
     params: Promise<{ companyId: string; vehicleId: string }>;
 }) {
-    const { companyId, vehicleId } = await params;
-    const data = await getPublicVehicleDetail(companyId, vehicleId);
+    const { companyId: companySlug, vehicleId } = await params;
+    const data = await getPublicVehicleDetail(companySlug, vehicleId);
 
     if (!data) {
         notFound();

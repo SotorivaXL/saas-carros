@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
     ArrowLeft,
@@ -16,6 +17,12 @@ import {
     Sparkles,
 } from "lucide-react";
 import { formatMoney } from "@/modules/ioauto/formatters";
+import {
+    buildTrackedWhatsappHref,
+    readPublicLeadTracking,
+    trackPublicLeadEvent,
+    withPublicLeadTracking,
+} from "@/modules/ioauto/publicLeadTracking";
 import type { PublicVehicleDetail } from "@/modules/ioauto/types";
 
 function getVehicleImages(detail: PublicVehicleDetail["vehicle"]) {
@@ -39,15 +46,6 @@ function buildVehicleLocation(detail: Pick<PublicVehicleDetail["vehicle"], "city
     return parts.length ? parts.join(" / ") : "Localizacao nao informada";
 }
 
-function buildWhatsappHref(phone?: string | null, vehicleTitle?: string) {
-    const digits = String(phone ?? "").replace(/\D/g, "");
-    if (!digits) return null;
-    const message = vehicleTitle
-        ? `Ola! Tenho interesse no veiculo ${vehicleTitle}.`
-        : "Ola! Gostaria de mais informacoes sobre o catalogo.";
-    return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
-}
-
 function getInitials(name?: string | null) {
     const parts = String(name ?? "IO Auto")
         .trim()
@@ -57,6 +55,9 @@ function getInitials(name?: string | null) {
 }
 
 export function PublicVehicleDetailView({ data }: { data: PublicVehicleDetail }) {
+    const searchParams = useSearchParams();
+    const tracking = useMemo(() => readPublicLeadTracking(searchParams), [searchParams]);
+
     const images = useMemo(() => getVehicleImages(data.vehicle), [data.vehicle]);
     const [selectedImage, setSelectedImage] = useState(images[0] ?? null);
 
@@ -64,7 +65,25 @@ export function PublicVehicleDetailView({ data }: { data: PublicVehicleDetail })
         setSelectedImage(images[0] ?? null);
     }, [images]);
 
-    const contactHref = buildWhatsappHref(data.company.whatsappNumber, data.vehicle.title);
+    useEffect(() => {
+        if (tracking.sourceReference) {
+            trackPublicLeadEvent(data.company.id, {
+                vehicleId: data.vehicle.id,
+                eventType: "VEHICLE_VIEW",
+                sourceType: tracking.sourceType,
+                sourceReference: tracking.sourceReference,
+                pagePath: window.location.pathname,
+                sourceUrl: window.location.href,
+            });
+        }
+    }, [data.company.id, data.vehicle.id, tracking.sourceReference, tracking.sourceType]);
+
+    const contactHref = buildTrackedWhatsappHref(
+        data.company.whatsappNumber,
+        `Ola! Tenho interesse no veiculo ${data.vehicle.title}.`,
+        tracking
+    );
+
     const specifications = [
         { label: "Marca", value: data.vehicle.brand, icon: <CarFront className="h-4 w-4" /> },
         { label: "Modelo", value: data.vehicle.model, icon: <Info className="h-4 w-4" /> },
@@ -102,6 +121,14 @@ export function PublicVehicleDetailView({ data }: { data: PublicVehicleDetail })
                             href={contactHref ?? undefined}
                             target={contactHref ? "_blank" : undefined}
                             rel={contactHref ? "noreferrer" : undefined}
+                            onClick={() =>
+                                trackPublicLeadEvent(data.company.id, {
+                                    vehicleId: data.vehicle.id,
+                                    eventType: "CONTACT_CLICK",
+                                    sourceType: tracking.sourceType,
+                                    sourceReference: tracking.sourceReference,
+                                })
+                            }
                             className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition ${
                                 contactHref
                                     ? "bg-[#111111] text-white hover:bg-black/85"
@@ -116,7 +143,7 @@ export function PublicVehicleDetailView({ data }: { data: PublicVehicleDetail })
 
                 <div className="mt-6">
                     <Link
-                        href={`/estoque-publico/${data.company.id}`}
+                        href={withPublicLeadTracking(`/estoque-publico/${data.company.publicSlug}`, tracking)}
                         className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-medium text-black/65 shadow-[0_10px_30px_rgba(15,23,42,0.07)] transition hover:text-black"
                     >
                         <ArrowLeft className="h-4 w-4" />
@@ -189,6 +216,14 @@ export function PublicVehicleDetailView({ data }: { data: PublicVehicleDetail })
                             href={contactHref ?? undefined}
                             target={contactHref ? "_blank" : undefined}
                             rel={contactHref ? "noreferrer" : undefined}
+                            onClick={() =>
+                                trackPublicLeadEvent(data.company.id, {
+                                    vehicleId: data.vehicle.id,
+                                    eventType: "INTEREST_CLICK",
+                                    sourceType: tracking.sourceType,
+                                    sourceReference: tracking.sourceReference,
+                                })
+                            }
                             className={`mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition ${
                                 contactHref
                                     ? "bg-[#22c55e] text-white hover:bg-[#16a34a]"

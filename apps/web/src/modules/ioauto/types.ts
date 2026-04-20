@@ -188,6 +188,7 @@ export type SignupStatus = {
 export type PublicInventoryCompany = {
     id: string;
     name: string;
+    publicSlug: string;
     profileImageUrl: string | null;
     whatsappNumber: string | null;
 };
@@ -240,4 +241,46 @@ export type PublicInventoryCatalog = {
 export type PublicVehicleDetail = {
     company: PublicInventoryCompany;
     vehicle: PublicInventoryVehicle;
+};
+
+export type PublicLeadEventSummary = {
+    totalTrackedInteractions: number;
+    totalContactClicks: number;
+    totalInterestClicks: number;
+    sources: Array<{
+        sourceType: string;
+        sourceReference: string;
+        totalInteractions: number;
+        stockInteractions: number;
+        vehicleInteractions: number;
+        contactClicks: number;
+        interestClicks: number;
+        lastEventAt: string | null;
+    }>;
+    recentEvents: Array<{
+        eventType: string;
+        sourceType: string;
+        sourceReference: string | null;
+        vehicleId: string | null;
+        pagePath: string | null;
+        createdAt: string | null;
+    }>;
+};
+
+export type PublicLinkRecord = {
+    id: string;
+    name: string;
+    linkKind: string;
+    scopeType: string;
+    sourceType: string | null;
+    sourceReference: string | null;
+    vehicleId: string | null;
+    vehicleTitle: string | null;
+    publicPath: string;
+    totalInteractions: number;
+    contactClicks: number;
+    interestClicks: number;
+    lastInteractionAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
 };

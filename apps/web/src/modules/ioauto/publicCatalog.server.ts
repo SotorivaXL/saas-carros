@@ -22,10 +22,10 @@ async function fetchPublicResource<T>(path: string) {
     return payload as T;
 }
 
-export async function getPublicInventoryCatalog(companyId: string) {
-    return fetchPublicResource<PublicInventoryCatalog>(`/public/stock/${companyId}`);
+export async function getPublicInventoryCatalog(companySlug: string) {
+    return fetchPublicResource<PublicInventoryCatalog>(`/public/stock/${companySlug}`);
 }
 
-export async function getPublicVehicleDetail(companyId: string, vehicleId: string) {
-    return fetchPublicResource<PublicVehicleDetail>(`/public/stock/${companyId}/vehicles/${vehicleId}`);
+export async function getPublicVehicleDetail(companySlug: string, vehicleId: string) {
+    return fetchPublicResource<PublicVehicleDetail>(`/public/stock/${companySlug}/vehicles/${vehicleId}`);
 }

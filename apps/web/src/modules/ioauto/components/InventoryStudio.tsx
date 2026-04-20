@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
     CalendarDays,
@@ -8,8 +9,10 @@ import {
     Copy,
     Gauge,
     Globe2,
+    Link2,
     LoaderCircle,
     MapPin,
+    Megaphone,
     PencilLine,
     Plus,
     Save,
@@ -17,8 +20,12 @@ import {
     Sparkles,
     X,
 } from "lucide-react";
-import type { IntegrationRecord, VehiclePublication, VehicleRecord } from "@/modules/ioauto/types";
+import type { IntegrationRecord, PublicLeadEventSummary, VehiclePublication, VehicleRecord } from "@/modules/ioauto/types";
 import { formatDateTime, formatMoney, platformLabel, statusLabel } from "@/modules/ioauto/formatters";
+
+type LinkGeneratorState =
+    | { mode: "catalog" }
+    | { mode: "vehicle"; vehicle: VehicleRecord };
 
 type VehicleFormState = {
     id?: string;
@@ -153,6 +160,24 @@ function getPublicationBadgeConfig(publication: VehiclePublication) {
     };
 }
 
+function slugifyLeadSourceReference(value: string) {
+    const normalized = value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    return normalized.slice(0, 80);
+}
+
+function buildTrackedPublicLink(baseUrl: string, reference: string) {
+    const url = new URL(baseUrl);
+    url.searchParams.set("source", "influencer");
+    url.searchParams.set("ref", reference);
+    return url.toString();
+}
+
 export function InventoryStudio() {
     const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
     const [integrations, setIntegrations] = useState<IntegrationRecord[]>([]);
@@ -163,8 +188,13 @@ export function InventoryStudio() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [companyId, setCompanyId] = useState<string | null>(null);
     const [publicCatalogLink, setPublicCatalogLink] = useState<string | null>(null);
     const [copiedPublicCatalogLink, setCopiedPublicCatalogLink] = useState(false);
+    const [publicLeadSummary, setPublicLeadSummary] = useState<PublicLeadEventSummary | null>(null);
+    const [linkGenerator, setLinkGenerator] = useState<LinkGeneratorState | null>(null);
+    const [leadSourceName, setLeadSourceName] = useState("");
+    const [copiedGeneratedLink, setCopiedGeneratedLink] = useState(false);
 
     const selectedVehicle = useMemo(() => vehicles.find((vehicle) => vehicle.id === selectedId) ?? null, [vehicles, selectedId]);
     const connectedIntegrations = useMemo(
@@ -172,6 +202,20 @@ export function InventoryStudio() {
         [integrations]
     );
     const publicationIntegrations = useMemo(() => integrations.filter((integration) => integration.supportsPublication), [integrations]);
+    const topTrackedSources = useMemo(() => publicLeadSummary?.sources.slice(0, 5) ?? [], [publicLeadSummary]);
+    const recentTrackedEvents = useMemo(() => publicLeadSummary?.recentEvents.slice(0, 5) ?? [], [publicLeadSummary]);
+    const leadSourceReference = useMemo(() => slugifyLeadSourceReference(leadSourceName), [leadSourceName]);
+    const generatedTrackedLink = useMemo(() => {
+        if (!companyId || !linkGenerator || typeof window === "undefined") return null;
+
+        const basePath =
+            linkGenerator.mode === "catalog"
+                ? `/estoque-publico/${companyId}`
+                : `/estoque-publico/${companyId}/veiculo/${linkGenerator.vehicle.id}`;
+
+        if (!leadSourceReference) return `${window.location.origin}${basePath}`;
+        return buildTrackedPublicLink(`${window.location.origin}${basePath}`, leadSourceReference);
+    }, [companyId, leadSourceReference, linkGenerator]);
 
     const visibleVehicles = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -215,25 +259,29 @@ export function InventoryStudio() {
     async function loadInventory() {
         setLoading(true);
         try {
-            const [vehiclesResponse, integrationsResponse, meResponse] = await Promise.all([
+            const [vehiclesResponse, integrationsResponse, meResponse, leadSummaryResponse] = await Promise.all([
                 fetch("/api/ioauto/vehicles", { cache: "no-store" }),
                 fetch("/api/ioauto/integrations", { cache: "no-store" }),
                 fetch("/api/auth/me", { cache: "no-store" }),
+                fetch("/api/ioauto/public-lead-events/summary", { cache: "no-store" }),
             ]);
 
             if (!vehiclesResponse.ok) throw new Error("Falha ao listar os veículos.");
             if (!integrationsResponse.ok) throw new Error("Falha ao listar as integrações.");
 
-            const [vehiclePayload, integrationPayload, mePayload] = await Promise.all([
+            const [vehiclePayload, integrationPayload, mePayload, leadSummaryPayload] = await Promise.all([
                 vehiclesResponse.json(),
                 integrationsResponse.json(),
                 meResponse.ok ? meResponse.json() as Promise<{ companyId?: string }> : Promise.resolve(null),
+                leadSummaryResponse.ok ? leadSummaryResponse.json() as Promise<PublicLeadEventSummary> : Promise.resolve(null),
             ]);
             const vehicleList = vehiclePayload as VehicleRecord[];
             setVehicles(vehicleList);
             setIntegrations(integrationPayload as IntegrationRecord[]);
             setSelectedId((current) => (current && vehicleList.some((vehicle) => vehicle.id === current) ? current : vehicleList[0]?.id ?? null));
+            setCompanyId(mePayload?.companyId ?? null);
             setPublicCatalogLink(mePayload?.companyId && typeof window !== "undefined" ? `${window.location.origin}/estoque-publico/${mePayload.companyId}` : null);
+            setPublicLeadSummary(leadSummaryPayload);
             setError(null);
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "Falha ao carregar o estoque.");
@@ -251,6 +299,38 @@ export function InventoryStudio() {
             window.setTimeout(() => setCopiedPublicCatalogLink(false), 2200);
         } catch {
             setError("Nao foi possivel copiar o link publico do estoque.");
+        }
+    }
+
+    function openCatalogLinkGenerator() {
+        if (!companyId) return;
+        setLinkGenerator({ mode: "catalog" });
+        setLeadSourceName("");
+        setCopiedGeneratedLink(false);
+    }
+
+    function openVehicleLinkGenerator(vehicle: VehicleRecord) {
+        if (!companyId) return;
+        setLinkGenerator({ mode: "vehicle", vehicle });
+        setLeadSourceName(vehicle.title);
+        setCopiedGeneratedLink(false);
+    }
+
+    function closeLinkGenerator() {
+        setLinkGenerator(null);
+        setLeadSourceName("");
+        setCopiedGeneratedLink(false);
+    }
+
+    async function handleCopyGeneratedLink() {
+        if (!generatedTrackedLink || !leadSourceReference) return;
+
+        try {
+            await navigator.clipboard.writeText(generatedTrackedLink);
+            setCopiedGeneratedLink(true);
+            window.setTimeout(() => setCopiedGeneratedLink(false), 2200);
+        } catch {
+            setError("Nao foi possivel copiar o link de divulgacao.");
         }
     }
 
@@ -353,22 +433,19 @@ export function InventoryStudio() {
 
                             <button
                                 type="button"
-                                onClick={handleCopyPublicCatalogLink}
-                                disabled={!publicCatalogLink}
-                                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-black/12 bg-white px-5 text-sm font-semibold text-black/70 transition hover:border-black/20 hover:text-black disabled:cursor-not-allowed disabled:opacity-55"
-                            >
-                                {copiedPublicCatalogLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                {copiedPublicCatalogLink ? "Link copiado" : "Copiar link publico do estoque"}
-                            </button>
-
-                            <button
-                                type="button"
                                 onClick={openCreateEditor}
                                 className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-black px-5 text-sm font-semibold text-white transition hover:bg-black/85"
                             >
                                 <Plus className="h-4 w-4" />
                                 Novo veículo
                             </button>
+                            <Link
+                                href="/protected/links-publicos"
+                                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-black/12 bg-white px-5 text-sm font-semibold text-black/72 transition hover:border-black/20 hover:text-black"
+                            >
+                                <Link2 className="h-4 w-4" />
+                                Gerenciar links
+                            </Link>
                         </div>
                     </div>
 
@@ -390,7 +467,11 @@ export function InventoryStudio() {
                 ) : visibleVehicles.length ? (
                     <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4 xl:grid-cols-3">
                         {visibleVehicles.map((vehicle) => (
-                            <InventoryVehicleCard key={vehicle.id} vehicle={vehicle} onEdit={() => openEditEditor(vehicle)} />
+                            <InventoryVehicleCard
+                                key={vehicle.id}
+                                vehicle={vehicle}
+                                onEdit={() => openEditEditor(vehicle)}
+                            />
                         ))}
                     </section>
                 ) : (
@@ -540,6 +621,7 @@ export function InventoryStudio() {
                     </div>
                 </div>
             ) : null}
+
         </>
     );
 }
@@ -614,6 +696,183 @@ function InventoryVehicleCard({ vehicle, onEdit }: { vehicle: VehicleRecord; onE
     );
 }
 
+function PublicLeadSummaryPanel({
+    summary,
+    topSources,
+    recentEvents,
+}: {
+    summary: PublicLeadEventSummary | null;
+    topSources: PublicLeadEventSummary["sources"];
+    recentEvents: PublicLeadEventSummary["recentEvents"];
+}) {
+    return (
+        <section className="rounded-[34px] border border-black/10 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)] md:p-6">
+            <div>
+                <p className="inline-flex items-center gap-2 rounded-full bg-[#eef4ff] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#3159b8]">
+                    <Megaphone className="h-3.5 w-3.5" />
+                    Origem das divulgacoes
+                </p>
+                <h2 className="mt-3 font-display text-2xl font-bold text-io-dark">Desempenho dos links publicos</h2>
+                <p className="mt-2 text-sm text-black/56">Acompanhe quais origens geraram acessos, contatos e demonstracoes de interesse.</p>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <MetricCard
+                    label="Interacoes rastreadas"
+                    value={String(summary?.totalTrackedInteractions ?? 0)}
+                    detail="Acessos e cliques capturados com parametro"
+                />
+                <MetricCard
+                    label="Cliques em contato"
+                    value={String(summary?.totalContactClicks ?? 0)}
+                    detail="Toques no botao de WhatsApp"
+                />
+                <MetricCard
+                    label="Cliques em interesse"
+                    value={String(summary?.totalInterestClicks ?? 0)}
+                    detail="Acoes de interesse nos carros"
+                />
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <div className="rounded-[28px] bg-[#faf8f4] px-5 py-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/38">Melhores origens</p>
+                    {topSources.length ? (
+                        <div className="mt-4 grid gap-3">
+                            {topSources.map((source) => (
+                                <div key={`${source.sourceType}-${source.sourceReference}`} className="rounded-[22px] bg-white px-4 py-4 shadow-[0_10px_25px_rgba(15,23,42,0.05)]">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-io-dark">{source.sourceReference}</p>
+                                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-black/40">{source.sourceType}</p>
+                                        </div>
+                                        <span className="rounded-full bg-black/[0.04] px-3 py-2 text-xs font-semibold text-black/62">
+                                            {source.totalInteractions} interacoes
+                                        </span>
+                                    </div>
+                                    <div className="mt-3 grid gap-2 text-sm text-black/58 md:grid-cols-2">
+                                        <span>Estoque: {source.stockInteractions}</span>
+                                        <span>Veiculos: {source.vehicleInteractions}</span>
+                                        <span>Contato: {source.contactClicks}</span>
+                                        <span>Interesse: {source.interestClicks}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="mt-4 text-sm text-black/56">Ainda nao ha interacoes rastreadas por influencer.</p>
+                    )}
+                </div>
+
+                <div className="rounded-[28px] bg-[#faf8f4] px-5 py-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/38">Eventos recentes</p>
+                    {recentEvents.length ? (
+                        <div className="mt-4 grid gap-3">
+                            {recentEvents.map((event, index) => (
+                                <div key={`${event.createdAt ?? "event"}-${index}`} className="rounded-[22px] bg-white px-4 py-4 shadow-[0_10px_25px_rgba(15,23,42,0.05)]">
+                                    <p className="text-sm font-semibold text-io-dark">{translateLeadEventType(event.eventType)}</p>
+                                    <p className="mt-1 text-sm text-black/58">
+                                        {event.sourceReference || "Origem nao informada"}
+                                        {event.pagePath ? ` • ${event.pagePath}` : ""}
+                                    </p>
+                                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-black/40">{formatDateTime(event.createdAt)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="mt-4 text-sm text-black/56">Assim que alguem interagir por um link rastreavel, os eventos aparecerao aqui.</p>
+                    )}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function PublicLinkGeneratorDialog({
+    state,
+    leadSourceName,
+    onLeadSourceNameChange,
+    leadSourceReference,
+    generatedTrackedLink,
+    copiedGeneratedLink,
+    onCopyLink,
+    onClose,
+}: {
+    state: LinkGeneratorState;
+    leadSourceName: string;
+    onLeadSourceNameChange: (value: string) => void;
+    leadSourceReference: string;
+    generatedTrackedLink: string | null;
+    copiedGeneratedLink: boolean;
+    onCopyLink: () => void;
+    onClose: () => void;
+}) {
+    const targetTitle = state.mode === "catalog" ? "Estoque completo" : state.vehicle.title;
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/55 px-4 py-6 backdrop-blur-sm">
+            <div className="mx-auto flex h-full max-w-2xl items-center justify-center">
+                <div className="w-full rounded-[34px] border border-white/15 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-7">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/38">Gerador de link publico</p>
+                            <h2 className="mt-2 font-display text-2xl font-bold text-io-dark">{targetTitle}</h2>
+                            <p className="mt-2 text-sm text-black/56">
+                                Informe o nome do influencer ou da campanha. O sistema vai montar a URL com os parametros para rastrear a origem do lead.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 text-black/65 transition hover:border-black/20 hover:text-black"
+                            aria-label="Fechar gerador"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <div className="mt-6 grid gap-4">
+                        <Field label="Influencer ou campanha" value={leadSourceName} onChange={onLeadSourceNameChange} required />
+
+                        <div className="rounded-[26px] bg-[#faf8f4] px-5 py-5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/38">Parametro de origem</p>
+                            <p className="mt-3 text-sm font-medium text-io-dark">{leadSourceReference || "Preencha o nome para gerar o identificador"}</p>
+                            <p className="mt-2 text-sm text-black/54">Esse identificador sera salvo quando o cliente visualizar, entrar em contato ou demonstrar interesse.</p>
+                        </div>
+
+                        <div className="rounded-[26px] border border-black/10 bg-white px-5 py-5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black/38">Link gerado</p>
+                            <p className="mt-3 break-all rounded-[20px] bg-[#faf8f4] px-4 py-4 text-sm leading-6 text-black/68">
+                                {generatedTrackedLink ?? "Aguardando dados do link publico"}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="inline-flex h-12 items-center justify-center rounded-full border border-black/12 px-5 text-sm font-semibold text-black/68 transition hover:border-black/20 hover:text-black"
+                        >
+                            Fechar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onCopyLink}
+                            disabled={!generatedTrackedLink || !leadSourceReference}
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 text-sm font-semibold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                            {copiedGeneratedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            {copiedGeneratedLink ? "Link copiado" : "Copiar link rastreavel"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
     return (
         <div className="rounded-[28px] border border-black/8 bg-white/92 px-5 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
@@ -627,6 +886,14 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
             <p className="mt-2 text-sm text-black/52">{detail}</p>
         </div>
     );
+}
+
+function translateLeadEventType(eventType: string) {
+    if (eventType === "CATALOG_VIEW") return "Visualizacao do estoque";
+    if (eventType === "VEHICLE_VIEW") return "Visualizacao do veiculo";
+    if (eventType === "CONTACT_CLICK") return "Clique em contato";
+    if (eventType === "INTEREST_CLICK") return "Clique em interesse";
+    return eventType;
 }
 
 function PublicationBadge({ publication, size = "md" }: { publication: VehiclePublication; size?: "sm" | "md" }) {

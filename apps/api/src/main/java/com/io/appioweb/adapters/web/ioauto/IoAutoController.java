@@ -5,9 +5,13 @@ import com.io.appioweb.adapters.persistence.atendimentos.AtendimentoSessionRepos
 import com.io.appioweb.adapters.persistence.atendimentos.JpaAtendimentoConversationEntity;
 import com.io.appioweb.adapters.persistence.atendimentos.JpaAtendimentoSessionEntity;
 import com.io.appioweb.adapters.persistence.ioauto.IoAutoIntegrationRepositoryJpa;
+import com.io.appioweb.adapters.persistence.ioauto.IoAutoPublicLinkRepositoryJpa;
+import com.io.appioweb.adapters.persistence.ioauto.IoAutoPublicLeadEventRepositoryJpa;
 import com.io.appioweb.adapters.persistence.ioauto.IoAutoVehiclePublicationRepositoryJpa;
 import com.io.appioweb.adapters.persistence.ioauto.IoAutoVehicleRepositoryJpa;
 import com.io.appioweb.adapters.persistence.ioauto.JpaIoAutoIntegrationEntity;
+import com.io.appioweb.adapters.persistence.ioauto.JpaIoAutoPublicLinkEntity;
+import com.io.appioweb.adapters.persistence.ioauto.JpaIoAutoPublicLeadEventEntity;
 import com.io.appioweb.adapters.persistence.ioauto.JpaIoAutoVehicleEntity;
 import com.io.appioweb.adapters.persistence.ioauto.JpaIoAutoVehiclePublicationEntity;
 import com.io.appioweb.application.auth.port.out.CompanyRepositoryPort;
@@ -17,6 +21,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -54,6 +61,8 @@ public class IoAutoController {
     private final IoAutoVehicleRepositoryJpa vehicles;
     private final IoAutoVehiclePublicationRepositoryJpa publications;
     private final IoAutoIntegrationRepositoryJpa integrations;
+    private final IoAutoPublicLinkRepositoryJpa publicLinks;
+    private final IoAutoPublicLeadEventRepositoryJpa publicLeadEvents;
     private final IoAutoBillingService billingService;
 
     public IoAutoController(
@@ -64,6 +73,8 @@ public class IoAutoController {
             IoAutoVehicleRepositoryJpa vehicles,
             IoAutoVehiclePublicationRepositoryJpa publications,
             IoAutoIntegrationRepositoryJpa integrations,
+            IoAutoPublicLinkRepositoryJpa publicLinks,
+            IoAutoPublicLeadEventRepositoryJpa publicLeadEvents,
             IoAutoBillingService billingService
     ) {
         this.currentUser = currentUser;
@@ -73,6 +84,8 @@ public class IoAutoController {
         this.vehicles = vehicles;
         this.publications = publications;
         this.integrations = integrations;
+        this.publicLinks = publicLinks;
+        this.publicLeadEvents = publicLeadEvents;
         this.billingService = billingService;
     }
 
@@ -188,12 +201,14 @@ public class IoAutoController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/public/stock/{companyId}")
-    public ResponseEntity<PublicInventoryCatalogHttpResponse> getPublicInventory(@PathVariable UUID companyId) {
-        var company = companies.findById(companyId).orElse(null);
+    @GetMapping("/public/stock/{companyIdentifier}")
+    public ResponseEntity<PublicInventoryCatalogHttpResponse> getPublicInventory(@PathVariable String companyIdentifier) {
+        var company = resolvePublicCompany(companyIdentifier);
         if (company == null) {
             return ResponseEntity.notFound().build();
         }
+
+        UUID companyId = company.id();
 
         List<JpaIoAutoVehicleEntity> companyVehicles = vehicles.findAllByCompanyIdOrderByUpdatedAtDesc(companyId);
         Map<UUID, List<JpaIoAutoVehiclePublicationEntity>> publicationsByVehicle = groupPublicationsByVehicle(companyId, companyVehicles);
@@ -213,15 +228,17 @@ public class IoAutoController {
         ));
     }
 
-    @GetMapping("/public/stock/{companyId}/vehicles/{vehicleId}")
+    @GetMapping("/public/stock/{companyIdentifier}/vehicles/{vehicleId}")
     public ResponseEntity<PublicVehicleDetailHttpResponse> getPublicVehicle(
-            @PathVariable UUID companyId,
+            @PathVariable String companyIdentifier,
             @PathVariable UUID vehicleId
     ) {
-        var company = companies.findById(companyId).orElse(null);
+        var company = resolvePublicCompany(companyIdentifier);
         if (company == null) {
             return ResponseEntity.notFound().build();
         }
+
+        UUID companyId = company.id();
 
         JpaIoAutoVehicleEntity vehicle = vehicles.findByIdAndCompanyId(vehicleId, companyId).orElse(null);
         if (vehicle == null) {
@@ -237,6 +254,43 @@ public class IoAutoController {
                 toPublicCompanySummary(company),
                 toPublicVehicleResponse(vehicle)
         ));
+    }
+
+    @PostMapping("/public/stock/{companyId}/track")
+    @Transactional
+    public ResponseEntity<Void> trackPublicLeadEvent(
+            @PathVariable UUID companyId,
+            @Valid @RequestBody TrackPublicLeadEventHttpRequest request
+    ) {
+        var company = companies.findById(companyId).orElse(null);
+        if (company == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String sourceReference = normalizeNullableText(request.sourceReference());
+        if (sourceReference == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        UUID trackedVehicleId = request.vehicleId();
+        if (trackedVehicleId != null && vehicles.findByIdAndCompanyId(trackedVehicleId, companyId).isEmpty()) {
+            trackedVehicleId = null;
+        }
+
+        JpaIoAutoPublicLeadEventEntity entity = new JpaIoAutoPublicLeadEventEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setCompanyId(companyId);
+        entity.setVehicleId(trackedVehicleId);
+        entity.setEventType(normalizePublicLeadEventType(request.eventType()));
+        entity.setSourceType(normalizeText(request.sourceType(), "INFLUENCER").toUpperCase(Locale.ROOT));
+        entity.setSourceReference(sourceReference);
+        entity.setPagePath(trimToMaxLength(normalizeNullableText(request.pagePath()), 255));
+        entity.setSourceUrl(normalizeNullableText(request.sourceUrl()));
+        entity.setSessionId(trimToMaxLength(normalizeNullableText(request.sessionId()), 120));
+        entity.setCreatedAt(Instant.now());
+        publicLeadEvents.save(entity);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/ioauto/vehicles")
@@ -336,6 +390,148 @@ public class IoAutoController {
                 })
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/ioauto/public-lead-events/summary")
+    public ResponseEntity<PublicLeadEventSummaryHttpResponse> getPublicLeadEventSummary() {
+        UUID companyId = currentUser.companyId();
+        List<JpaIoAutoPublicLeadEventEntity> events = publicLeadEvents.findAllByCompanyIdOrderByCreatedAtDesc(companyId);
+
+        long trackedInteractions = events.size();
+        long contactClicks = events.stream()
+                .filter(event -> "CONTACT_CLICK".equalsIgnoreCase(event.getEventType()))
+                .count();
+        long interestClicks = events.stream()
+                .filter(event -> "INTEREST_CLICK".equalsIgnoreCase(event.getEventType()))
+                .count();
+
+        Map<String, List<JpaIoAutoPublicLeadEventEntity>> bySource = new LinkedHashMap<>();
+        for (JpaIoAutoPublicLeadEventEntity event : events) {
+            String reference = normalizeNullableText(event.getSourceReference());
+            if (reference == null) continue;
+
+            String sourceType = normalizeText(event.getSourceType(), "INFLUENCER").toUpperCase(Locale.ROOT);
+            String key = sourceType + "::" + reference;
+            bySource.computeIfAbsent(key, ignored -> new ArrayList<>()).add(event);
+        }
+
+        List<PublicLeadEventSummaryHttpResponse.SourcePerformance> sources = bySource.entrySet().stream()
+                .map(entry -> {
+                    List<JpaIoAutoPublicLeadEventEntity> sourceEvents = entry.getValue();
+                    JpaIoAutoPublicLeadEventEntity latest = sourceEvents.get(0);
+                    long sourceContactClicks = sourceEvents.stream().filter(event -> "CONTACT_CLICK".equalsIgnoreCase(event.getEventType())).count();
+                    long sourceInterestClicks = sourceEvents.stream().filter(event -> "INTEREST_CLICK".equalsIgnoreCase(event.getEventType())).count();
+                    long vehicleClicks = sourceEvents.stream().filter(event -> event.getVehicleId() != null).count();
+                    long stockClicks = sourceEvents.size() - vehicleClicks;
+
+                    return new PublicLeadEventSummaryHttpResponse.SourcePerformance(
+                            normalizeText(latest.getSourceType(), "INFLUENCER").toUpperCase(Locale.ROOT),
+                            normalizeText(latest.getSourceReference()),
+                            sourceEvents.size(),
+                            stockClicks,
+                            vehicleClicks,
+                            sourceContactClicks,
+                            sourceInterestClicks,
+                            latest.getCreatedAt()
+                    );
+                })
+                .sorted(Comparator.comparing(PublicLeadEventSummaryHttpResponse.SourcePerformance::totalInteractions).reversed()
+                        .thenComparing(PublicLeadEventSummaryHttpResponse.SourcePerformance::lastEventAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(12)
+                .toList();
+
+        List<PublicLeadEventSummaryHttpResponse.RecentEvent> recentEvents = events.stream()
+                .limit(15)
+                .map(event -> new PublicLeadEventSummaryHttpResponse.RecentEvent(
+                        normalizeText(event.getEventType()),
+                        normalizeText(event.getSourceType(), "INFLUENCER").toUpperCase(Locale.ROOT),
+                        normalizeNullableText(event.getSourceReference()),
+                        event.getVehicleId(),
+                        normalizeNullableText(event.getPagePath()),
+                        event.getCreatedAt()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(new PublicLeadEventSummaryHttpResponse(
+                trackedInteractions,
+                contactClicks,
+                interestClicks,
+                sources,
+                recentEvents
+        ));
+    }
+
+    @GetMapping("/ioauto/public-links")
+    public ResponseEntity<List<PublicLinkHttpResponse>> listPublicLinks() {
+        UUID companyId = currentUser.companyId();
+        var company = companies.findById(companyId).orElse(null);
+        if (company == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<JpaIoAutoPublicLinkEntity> links = publicLinks.findAllByCompanyIdOrderByCreatedAtDesc(companyId);
+        List<JpaIoAutoVehicleEntity> companyVehicles = vehicles.findAllByCompanyIdOrderByUpdatedAtDesc(companyId);
+        Map<UUID, JpaIoAutoVehicleEntity> vehiclesById = companyVehicles.stream()
+                .collect(java.util.stream.Collectors.toMap(JpaIoAutoVehicleEntity::getId, item -> item, (left, right) -> left, LinkedHashMap::new));
+        List<JpaIoAutoPublicLeadEventEntity> events = publicLeadEvents.findAllByCompanyIdOrderByCreatedAtDesc(companyId);
+
+        List<PublicLinkHttpResponse> response = links.stream()
+                .map(link -> toPublicLinkResponse(company, link, vehiclesById, events))
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/ioauto/public-links")
+    @Transactional
+    public ResponseEntity<PublicLinkHttpResponse> createPublicLink(@Valid @RequestBody SavePublicLinkHttpRequest request) {
+        UUID companyId = currentUser.companyId();
+        var company = companies.findById(companyId)
+                .orElseThrow(() -> new BusinessException("COMPANY_NOT_FOUND", "Empresa nao encontrada."));
+
+        String linkKind = normalizePublicLinkKind(request.linkKind());
+        String scopeType = normalizePublicLinkScope(request.scopeType());
+        String sourceType = "PUBLIC".equals(linkKind) ? null : normalizePublicLinkSourceType(request.sourceType());
+        String sourceReference = "PUBLIC".equals(linkKind) ? null : normalizePublicLinkSourceReference(request.sourceReference());
+
+        UUID vehicleId = request.vehicleId();
+        JpaIoAutoVehicleEntity vehicle = null;
+        if ("VEHICLE".equals(scopeType)) {
+            if (vehicleId == null) {
+                throw new BusinessException("IOAUTO_PUBLIC_LINK_INVALID", "Selecione um veiculo para este link.");
+            }
+            vehicle = vehicles.findByIdAndCompanyId(vehicleId, companyId)
+                    .orElseThrow(() -> new BusinessException("VEHICLE_NOT_FOUND", "Veiculo nao encontrado."));
+        }
+
+        Instant now = Instant.now();
+        JpaIoAutoPublicLinkEntity entity = new JpaIoAutoPublicLinkEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setCompanyId(companyId);
+        entity.setVehicleId(vehicle == null ? null : vehicle.getId());
+        entity.setName(requireText(request.name(), "Informe um nome para o link."));
+        entity.setLinkKind(linkKind);
+        entity.setScopeType(scopeType);
+        entity.setSourceType(sourceType);
+        entity.setSourceReference(sourceReference);
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        publicLinks.save(entity);
+
+        Map<UUID, JpaIoAutoVehicleEntity> vehiclesById = vehicle == null
+                ? Map.of()
+                : Map.of(vehicle.getId(), vehicle);
+        return ResponseEntity.ok(toPublicLinkResponse(company, entity, vehiclesById, List.of()));
+    }
+
+    @DeleteMapping("/ioauto/public-links/{linkId}")
+    @Transactional
+    public ResponseEntity<Void> deletePublicLink(@PathVariable UUID linkId) {
+        UUID companyId = currentUser.companyId();
+        JpaIoAutoPublicLinkEntity entity = publicLinks.findByIdAndCompanyId(linkId, companyId)
+                .orElseThrow(() -> new BusinessException("IOAUTO_PUBLIC_LINK_NOT_FOUND", "Link nao encontrado."));
+        publicLinks.delete(entity);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/ioauto/billing")
@@ -513,8 +709,52 @@ public class IoAutoController {
         return new PublicCompanySummary(
                 company.id(),
                 normalizeText(company.name(), "Catalogo"),
+                slugifyPublicPathSegment(company.name()),
                 normalizeNullableText(company.profileImageUrl()),
                 sanitizeWhatsappNumber(company.whatsappNumber())
+        );
+    }
+
+    private PublicLinkHttpResponse toPublicLinkResponse(
+            com.io.appioweb.domain.auth.entity.Company company,
+            JpaIoAutoPublicLinkEntity link,
+            Map<UUID, JpaIoAutoVehicleEntity> vehiclesById,
+            List<JpaIoAutoPublicLeadEventEntity> events
+    ) {
+        JpaIoAutoVehicleEntity vehicle = link.getVehicleId() == null ? null : vehiclesById.get(link.getVehicleId());
+        String sourceType = normalizeNullableText(link.getSourceType());
+        String sourceReference = normalizeNullableText(link.getSourceReference());
+
+        List<JpaIoAutoPublicLeadEventEntity> matchingEvents = events.stream()
+                .filter(event -> normalizeText(event.getSourceType()).equalsIgnoreCase(normalizeText(sourceType)))
+                .filter(event -> normalizeText(event.getSourceReference()).equalsIgnoreCase(normalizeText(sourceReference)))
+                .toList();
+
+        long totalInteractions = matchingEvents.size();
+        long contactClicks = matchingEvents.stream()
+                .filter(event -> "CONTACT_CLICK".equalsIgnoreCase(event.getEventType()))
+                .count();
+        long interestClicks = matchingEvents.stream()
+                .filter(event -> "INTEREST_CLICK".equalsIgnoreCase(event.getEventType()))
+                .count();
+        Instant lastInteractionAt = matchingEvents.isEmpty() ? null : matchingEvents.get(0).getCreatedAt();
+
+        return new PublicLinkHttpResponse(
+                link.getId(),
+                normalizeText(link.getName(), "Link publico"),
+                normalizeText(link.getLinkKind(), "PUBLIC"),
+                normalizeText(link.getScopeType(), "CATALOG"),
+                sourceType,
+                sourceReference,
+                link.getVehicleId(),
+                vehicle == null ? null : vehicle.getTitle(),
+                buildPublicLinkPath(company, link),
+                totalInteractions,
+                contactClicks,
+                interestClicks,
+                lastInteractionAt,
+                link.getCreatedAt(),
+                link.getUpdatedAt()
         );
     }
 
@@ -825,6 +1065,93 @@ public class IoAutoController {
         return digits.isBlank() ? null : digits;
     }
 
+    private com.io.appioweb.domain.auth.entity.Company resolvePublicCompany(String identifier) {
+        String normalized = normalizeText(identifier);
+        if (normalized.isBlank()) {
+            return null;
+        }
+
+        try {
+            return companies.findById(UUID.fromString(normalized)).orElse(null);
+        } catch (IllegalArgumentException ignored) {
+            return companies.findAll().stream()
+                    .filter(company -> slugifyPublicPathSegment(company.name()).equalsIgnoreCase(normalized))
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
+
+    private String buildPublicLinkPath(com.io.appioweb.domain.auth.entity.Company company, JpaIoAutoPublicLinkEntity link) {
+        String basePath = "/estoque-publico/" + slugifyPublicPathSegment(company.name());
+        if ("VEHICLE".equalsIgnoreCase(normalizeText(link.getScopeType())) && link.getVehicleId() != null) {
+            basePath += "/veiculo/" + link.getVehicleId();
+        }
+
+        String sourceReference = normalizeNullableText(link.getSourceReference());
+        if (sourceReference == null) {
+            return basePath;
+        }
+
+        String sourceType = normalizeText(link.getSourceType(), "INFLUENCER").toLowerCase(Locale.ROOT);
+        return basePath
+                + "?source=" + URLEncoder.encode(sourceType, StandardCharsets.UTF_8)
+                + "&ref=" + URLEncoder.encode(sourceReference, StandardCharsets.UTF_8);
+    }
+
+    private String normalizePublicLinkKind(String raw) {
+        String normalized = normalizeText(raw, "PUBLIC").toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "PUBLIC", "CAMPAIGN" -> normalized;
+            default -> throw new BusinessException("IOAUTO_PUBLIC_LINK_INVALID", "Tipo de link invalido.");
+        };
+    }
+
+    private String normalizePublicLinkScope(String raw) {
+        String normalized = normalizeText(raw, "CATALOG").toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "CATALOG", "VEHICLE" -> normalized;
+            default -> throw new BusinessException("IOAUTO_PUBLIC_LINK_INVALID", "Escopo do link invalido.");
+        };
+    }
+
+    private String normalizePublicLinkSourceType(String raw) {
+        String normalized = normalizeText(raw, "INFLUENCER").toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "INFLUENCER", "CAMPAIGN" -> normalized;
+            default -> throw new BusinessException("IOAUTO_PUBLIC_LINK_INVALID", "Origem do link invalida.");
+        };
+    }
+
+    private String normalizePublicLinkSourceReference(String raw) {
+        String slug = slugifyPublicPathSegment(requireText(raw, "Informe o identificador da campanha."));
+        if (slug.isBlank()) {
+            throw new BusinessException("IOAUTO_PUBLIC_LINK_INVALID", "Nao foi possivel gerar o identificador do link.");
+        }
+        return trimToMaxLength(slug, 160);
+    }
+
+    private String slugifyPublicPathSegment(String raw) {
+        String normalized = normalizeText(raw)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]+", "-")
+                .replaceAll("^-+|-+$", "");
+
+        String ascii = java.text.Normalizer.normalize(normalized, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replaceAll("[^a-z0-9-]", "")
+                .replaceAll("-{2,}", "-");
+
+        return ascii.isBlank() ? "catalogo" : ascii;
+    }
+
+    private String normalizePublicLeadEventType(String raw) {
+        String normalized = normalizeText(raw, "CONTACT_CLICK").toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "CATALOG_VIEW", "VEHICLE_VIEW", "CONTACT_CLICK", "INTEREST_CLICK" -> normalized;
+            default -> "CONTACT_CLICK";
+        };
+    }
+
     private String normalizeSourcePlatform(String value) {
         return normalizeText(value, "OTHER").toUpperCase(Locale.ROOT);
     }
@@ -840,6 +1167,11 @@ public class IoAutoController {
     private String normalizeNullableText(String value) {
         String normalized = normalizeText(value);
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private String trimToMaxLength(String value, int maxLength) {
+        if (value == null) return null;
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private String normalizeText(String value) {
@@ -979,6 +1311,7 @@ public class IoAutoController {
     public record PublicCompanySummary(
             UUID id,
             String name,
+            String publicSlug,
             String profileImageUrl,
             String whatsappNumber
     ) {
@@ -1021,6 +1354,55 @@ public class IoAutoController {
             String coverImageUrl,
             List<String> gallery,
             List<String> optionals,
+            Instant updatedAt
+    ) {
+    }
+
+    public record PublicLeadEventSummaryHttpResponse(
+            long totalTrackedInteractions,
+            long totalContactClicks,
+            long totalInterestClicks,
+            List<SourcePerformance> sources,
+            List<RecentEvent> recentEvents
+    ) {
+        public record SourcePerformance(
+                String sourceType,
+                String sourceReference,
+                long totalInteractions,
+                long stockInteractions,
+                long vehicleInteractions,
+                long contactClicks,
+                long interestClicks,
+                Instant lastEventAt
+        ) {
+        }
+
+        public record RecentEvent(
+                String eventType,
+                String sourceType,
+                String sourceReference,
+                UUID vehicleId,
+                String pagePath,
+                Instant createdAt
+        ) {
+        }
+    }
+
+    public record PublicLinkHttpResponse(
+            UUID id,
+            String name,
+            String linkKind,
+            String scopeType,
+            String sourceType,
+            String sourceReference,
+            UUID vehicleId,
+            String vehicleTitle,
+            String publicPath,
+            long totalInteractions,
+            long contactClicks,
+            long interestClicks,
+            Instant lastInteractionAt,
+            Instant createdAt,
             Instant updatedAt
     ) {
     }
@@ -1079,6 +1461,27 @@ public class IoAutoController {
             List<String> gallery,
             List<String> optionals,
             List<String> targetIntegrations
+    ) {
+    }
+
+    public record TrackPublicLeadEventHttpRequest(
+            UUID vehicleId,
+            String eventType,
+            String sourceType,
+            String sourceReference,
+            String pagePath,
+            String sourceUrl,
+            String sessionId
+    ) {
+    }
+
+    public record SavePublicLinkHttpRequest(
+            @NotBlank(message = "Informe um nome para o link.") String name,
+            String linkKind,
+            String scopeType,
+            UUID vehicleId,
+            String sourceType,
+            String sourceReference
     ) {
     }
 

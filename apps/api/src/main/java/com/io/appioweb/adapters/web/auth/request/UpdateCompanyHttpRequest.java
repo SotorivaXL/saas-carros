@@ -15,6 +15,7 @@ public record UpdateCompanyHttpRequest(
         @NotNull LocalDate contractEndDate,
         @NotBlank String cnpj,
         @NotNull LocalDate openedAt,
+        @NotBlank String whatsappNumber,
         @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Horario inicial invalido (HH:mm)")
         @NotBlank String businessHoursStart,
         @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Horario final invalido (HH:mm)")

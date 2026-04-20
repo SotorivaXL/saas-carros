@@ -9,6 +9,7 @@ import {
     ChevronLeft,
     ChevronRight,
     LayoutDashboard,
+    Link2,
     MessageSquareText,
     Settings2,
     Users2,
@@ -30,7 +31,7 @@ type CurrentUser = {
 type NavItem = {
     label: string;
     href: string;
-    icon: "dashboard" | "conversas" | "crm" | "estoque" | "publicacoes" | "integracoes" | "equipe";
+    icon: "dashboard" | "conversas" | "crm" | "estoque" | "links" | "publicacoes" | "integracoes" | "equipe";
 };
 
 function getInitials(fullName?: string | null, email?: string | null) {
@@ -57,6 +58,7 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
     if (icon === "conversas") return <MessageSquareText className="h-5 w-5" strokeWidth={2} />;
     if (icon === "crm") return <Users2 className="h-5 w-5" strokeWidth={2} />;
     if (icon === "estoque") return <CarFront className="h-5 w-5" strokeWidth={2} />;
+    if (icon === "links") return <Link2 className="h-5 w-5" strokeWidth={2} />;
     if (icon === "publicacoes") return <Workflow className="h-5 w-5" strokeWidth={2} />;
     if (icon === "integracoes") return <Cable className="h-5 w-5" strokeWidth={2} />;
     return <Users2 className="h-5 w-5" strokeWidth={2} />;
@@ -80,6 +82,7 @@ export function ProtectedSidebar({ user }: { user: CurrentUser | null }) {
         { label: "Leads", href: "/protected/conversas", icon: "conversas" },
         { label: "CRM", href: "/protected/crm", icon: "crm" },
         { label: "Estoque", href: "/protected/estoque", icon: "estoque" },
+        { label: "Links", href: "/protected/links-publicos", icon: "links" },
         { label: "Publicações", href: "/protected/publicacoes", icon: "publicacoes" },
         { label: "Integrações", href: "/protected/integracoes", icon: "integracoes" },
     ];

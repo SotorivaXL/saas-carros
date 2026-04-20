@@ -10,6 +10,7 @@ type UpdateCompanyBody = {
     contractEndDate?: string;
     cnpj?: string;
     openedAt?: string;
+    whatsappNumber?: string;
     businessHoursStart?: string;
     businessHoursEnd?: string;
     businessHoursWeekly?: unknown;
@@ -54,6 +55,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
         !body?.contractEndDate ||
         !body?.cnpj ||
         !body?.openedAt ||
+        !body?.whatsappNumber ||
         !body?.businessHoursStart ||
         !body?.businessHoursEnd ||
         !body?.businessHoursWeekly

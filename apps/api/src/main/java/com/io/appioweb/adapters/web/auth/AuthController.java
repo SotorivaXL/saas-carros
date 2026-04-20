@@ -330,6 +330,7 @@ public class AuthController {
                 req.contractEndDate(),
                 req.cnpj(),
                 req.openedAt(),
+                req.whatsappNumber(),
                 req.password(),
                 req.businessHoursStart(),
                 req.businessHoursEnd(),
@@ -355,6 +356,7 @@ public class AuthController {
                         company.contractEndDate(),
                         company.cnpj(),
                         company.openedAt(),
+                        company.whatsappNumber(),
                         company.businessHoursStart(),
                         company.businessHoursEnd(),
                         parseJson(company.businessHoursWeeklyJson()),
@@ -385,6 +387,10 @@ public class AuthController {
         if (cnpjDigits.length() != 14) {
             throw new BusinessException("COMPANY_INVALID_CNPJ", "CNPJ invalido");
         }
+        String whatsappDigits = req.whatsappNumber().replaceAll("\\D", "");
+        if (whatsappDigits.length() < 10 || whatsappDigits.length() > 11) {
+            throw new BusinessException("COMPANY_INVALID_WHATSAPP", "Telefone da empresa invalido");
+        }
         String businessHoursWeeklyJson = normalizeBusinessHoursWeekly(req.businessHoursWeekly(), req.businessHoursStart(), req.businessHoursEnd());
 
         companyRepository.save(new com.io.appioweb.domain.auth.entity.Company(
@@ -395,10 +401,10 @@ public class AuthController {
                 req.contractEndDate(),
                 cnpjDigits,
                 req.openedAt(),
-                "",
-                "",
-                "",
-                "",
+                whatsappDigits,
+                existing.zapiInstanceId(),
+                existing.zapiInstanceToken(),
+                existing.zapiClientToken(),
                 req.businessHoursStart().trim(),
                 req.businessHoursEnd().trim(),
                 businessHoursWeeklyJson,

@@ -13,6 +13,7 @@ public record CompanySummaryHttpResponse(
         LocalDate contractEndDate,
         String cnpj,
         LocalDate openedAt,
+        String whatsappNumber,
         String businessHoursStart,
         String businessHoursEnd,
         JsonNode businessHoursWeekly,
