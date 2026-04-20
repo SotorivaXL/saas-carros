@@ -52,6 +52,7 @@ class CreateCompanyUseCaseTest {
                 LocalDate.parse("2027-12-31"),
                 "12.345.678/0001-90",
                 LocalDate.parse("2024-01-15"),
+                "(11) 98765-4321",
                 "senha-forte",
                 "08:00",
                 "18:00",
