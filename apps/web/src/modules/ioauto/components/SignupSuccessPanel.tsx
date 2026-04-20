@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import { CheckCircle2, KeyRound, LoaderCircle } from "lucide-react";
 import type { SignupStatus } from "@/modules/ioauto/types";
 
 type SignupSuccessPanelProps = {
@@ -48,21 +48,21 @@ export function SignupSuccessPanel({ intentId, sessionId }: SignupSuccessPanelPr
     const ready = useMemo(() => status?.accessReady ?? false, [status]);
 
     return (
-        <div className="rounded-[34px] border border-black/10 bg-white p-8 shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-black text-white">
+        <div className="rounded-[34px] border border-[#6b00e3]/12 bg-white p-8 shadow-[0_18px_45px_rgba(90,10,160,0.10)]">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#6b00e3] text-white">
                 {ready ? <CheckCircle2 className="h-7 w-7" /> : <LoaderCircle className="h-7 w-7 animate-spin" />}
             </div>
 
             <h1 className="mt-6 font-display text-4xl font-bold text-io-dark">
-                {ready ? "Conta liberada com sucesso" : "Validando a assinatura"}
+                {ready ? "Conta liberada com sucesso" : "Validando sua assinatura"}
             </h1>
             <p className="mt-4 text-sm leading-7 text-black/55">
-                {status?.message ?? "Estamos confirmando o pagamento e concluindo o provisionamento do tenant."}
+                {status?.message ?? "Estamos confirmando o pagamento no Asaas e concluindo a ativacao da conta."}
             </p>
 
             {error ? <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
-            <div className="mt-6 grid gap-3 rounded-[28px] bg-black/[0.03] p-4">
+            <div className="mt-6 grid gap-3 rounded-[28px] bg-[#faf6ff] p-4">
                 <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-black/55">Empresa</span>
                     <span className="font-semibold text-io-dark">{status?.companyName || "-"}</span>
@@ -73,11 +73,28 @@ export function SignupSuccessPanel({ intentId, sessionId }: SignupSuccessPanelPr
                 </div>
             </div>
 
+            {ready && status?.temporaryPassword ? (
+                <div className="mt-4 rounded-[28px] border border-[#6b00e3]/12 bg-[#f6f0ff] p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#6b00e3] text-white">
+                            <KeyRound className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-[#6b00e3]/75">Senha provisoria</p>
+                            <p className="mt-2 text-lg font-semibold text-[#2a0a53]">{status.temporaryPassword}</p>
+                            <p className="mt-2 text-sm leading-7 text-black/58">
+                                Use esta senha no primeiro acesso junto com o e-mail informado no cadastro.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
             <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/login" className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/85">
+                <Link href="/login" className="rounded-full bg-[#6b00e3] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5800bb]">
                     Entrar na plataforma
                 </Link>
-                <Link href="/" className="rounded-full border border-black/10 px-5 py-3 text-sm font-semibold text-black/65 transition hover:border-black/20 hover:text-black">
+                <Link href="/" className="rounded-full border border-black/10 px-5 py-3 text-sm font-semibold text-black/65 transition hover:border-[#6b00e3]/20 hover:text-[#6b00e3]">
                     Voltar para a home
                 </Link>
             </div>

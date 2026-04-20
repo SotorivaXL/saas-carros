@@ -4,7 +4,10 @@ import { jwtVerify } from "jose";
 const ACCESS_COOKIE = "io_access";
 const REFRESH_COOKIE = "io_refresh";
 function isProtected(pathname: string) {
-    return pathname.startsWith("/") && !pathname.startsWith("/login") && !pathname.startsWith("/api");
+    return pathname.startsWith("/")
+        && !pathname.startsWith("/login")
+        && !pathname.startsWith("/api")
+        && !pathname.startsWith("/estoque-publico");
 }
 
 function isAdminRoute(pathname: string) {

@@ -3,7 +3,6 @@ package com.io.appioweb.adapters.web.ioauto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +27,7 @@ public class IoAutoPublicSignupController {
                 request.ownerFullName(),
                 request.companyName(),
                 request.email(),
-                request.password()
+                request.phone()
         )));
     }
 
@@ -41,10 +40,10 @@ public class IoAutoPublicSignupController {
     }
 
     public record SignupCheckoutHttpRequest(
-            @NotBlank(message = "Informe o nome do responsavel.") String ownerFullName,
+            @NotBlank(message = "Informe o nome completo.") String ownerFullName,
             @NotBlank(message = "Informe o nome da loja.") String companyName,
             @Email(message = "Informe um e-mail valido.") @NotBlank(message = "Informe o e-mail.") String email,
-            @NotBlank(message = "Informe a senha.") @Size(min = 8, message = "Use uma senha com pelo menos 8 caracteres.") String password
+            @NotBlank(message = "Informe o telefone.") String phone
     ) {
     }
 }

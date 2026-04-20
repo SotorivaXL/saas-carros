@@ -12,7 +12,7 @@ type SubscriptionCenterProps = {
 
 export function SubscriptionCenter({
     title = "Assinatura do tenant",
-    description = "Cobrança recorrente pronta para operação automática via Stripe.",
+    description = "Cobranca recorrente pronta para operacao automatica via Asaas.",
 }: SubscriptionCenterProps) {
     const [billing, setBilling] = useState<BillingSnapshot | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -35,8 +35,8 @@ export function SubscriptionCenter({
         setOpeningPortal(true);
         const response = await fetch("/api/ioauto/billing/portal", { method: "POST" });
         if (!response.ok) {
-            const payload = await response.json().catch(() => ({ message: "Falha ao abrir o portal da assinatura." }));
-            setError(payload.message ?? "Falha ao abrir o portal da assinatura.");
+            const payload = await response.json().catch(() => ({ message: "Falha ao abrir a cobranca." }));
+            setError(payload.message ?? "Falha ao abrir a cobranca.");
             setOpeningPortal(false);
             return;
         }
@@ -64,7 +64,7 @@ export function SubscriptionCenter({
                 <InfoCard label="Plano" value={billing?.planName ?? "Plano principal"} />
                 <InfoCard label="Status" value={statusLabel(billing?.status)} />
                 <InfoCard label="Valor" value={formatMoney(billing?.amountCents, (billing?.currency ?? "BRL").toUpperCase())} />
-                <InfoCard label="Renovação" value={formatDateTime(billing?.currentPeriodEnd)} />
+                <InfoCard label="Renovacao" value={formatDateTime(billing?.currentPeriodEnd)} />
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -72,10 +72,10 @@ export function SubscriptionCenter({
                     type="button"
                     onClick={handleOpenPortal}
                     disabled={openingPortal || !billing?.hasSubscription}
-                    className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:bg-black/20"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#6b00e3] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5800bb] disabled:cursor-not-allowed disabled:bg-[#6b00e3]/35"
                 >
                     {openingPortal ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                    Gerenciar no Stripe
+                    Abrir cobranca no Asaas
                 </button>
             </div>
         </section>

@@ -98,12 +98,6 @@
             <artifactId>spring-security-oauth2-jose</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.stripe</groupId>
-            <artifactId>stripe-java</artifactId>
-            <version>31.4.0</version>
-        </dependency>
-
         <!-- Testes -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

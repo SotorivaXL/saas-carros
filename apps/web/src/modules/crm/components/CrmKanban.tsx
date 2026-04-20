@@ -79,6 +79,12 @@ const FIELD_TYPE_OPTIONS: Array<{ value: CrmCustomFieldType; label: string }> = 
     { value: "date", label: "Data" },
 ];
 const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    notation: "compact",
+    maximumFractionDigits: 1,
+});
 
 function formatDateTime(value?: string | null) {
     if (!value) return "-";
@@ -129,6 +135,14 @@ function formatCurrencyAmount(value?: string | null, fallback = "-") {
 
 function formatCurrencyTotal(amount: number) {
     return CURRENCY_FORMATTER.format(Number.isFinite(amount) ? amount : 0);
+}
+
+function formatCompactCurrencyTotal(amount: number) {
+    const normalizedAmount = Number.isFinite(amount) ? amount : 0;
+    if (Math.abs(normalizedAmount) < 1_000_000) {
+        return formatCurrencyTotal(normalizedAmount);
+    }
+    return COMPACT_CURRENCY_FORMATTER.format(normalizedAmount);
 }
 
 function formatCurrencyInput(value: string) {
@@ -861,9 +875,14 @@ export function CrmKanban() {
                                 <p className="mt-2 text-3xl font-bold tracking-tight text-io-dark">{filteredLeads.length}</p>
                                 <p className="mt-2 text-sm text-black/52">{orderedStages.length} etapas configuradas</p>
                             </div>
-                            <div className="rounded-[24px] border border-black/8 bg-white/92 px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
+                            <div
+                                className="rounded-[24px] border border-black/8 bg-white/92 px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.05)]"
+                                title={formatCurrencyTotal(totalPipelineValue)}
+                            >
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/35">Pipeline</p>
-                                <p className="mt-2 text-3xl font-bold tracking-tight text-io-dark">{formatCurrencyTotal(totalPipelineValue)}</p>
+                                <p className="mt-2 text-[clamp(1.8rem,3vw,2.4rem)] font-bold leading-none tracking-tight text-io-dark">
+                                    {formatCompactCurrencyTotal(totalPipelineValue)}
+                                </p>
                                 <p className="mt-2 text-sm text-black/52">Valor somado dos cards filtrados</p>
                             </div>
                             <div className="rounded-[24px] border border-black/8 bg-white/92 px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">

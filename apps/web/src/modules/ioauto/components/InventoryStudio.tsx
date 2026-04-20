@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import {
     CalendarDays,
     CarFront,
+    Check,
+    Copy,
     Gauge,
     Globe2,
     LoaderCircle,
@@ -161,6 +163,8 @@ export function InventoryStudio() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [publicCatalogLink, setPublicCatalogLink] = useState<string | null>(null);
+    const [copiedPublicCatalogLink, setCopiedPublicCatalogLink] = useState(false);
 
     const selectedVehicle = useMemo(() => vehicles.find((vehicle) => vehicle.id === selectedId) ?? null, [vehicles, selectedId]);
     const connectedIntegrations = useMemo(
@@ -211,24 +215,42 @@ export function InventoryStudio() {
     async function loadInventory() {
         setLoading(true);
         try {
-            const [vehiclesResponse, integrationsResponse] = await Promise.all([
+            const [vehiclesResponse, integrationsResponse, meResponse] = await Promise.all([
                 fetch("/api/ioauto/vehicles", { cache: "no-store" }),
                 fetch("/api/ioauto/integrations", { cache: "no-store" }),
+                fetch("/api/auth/me", { cache: "no-store" }),
             ]);
 
             if (!vehiclesResponse.ok) throw new Error("Falha ao listar os veículos.");
             if (!integrationsResponse.ok) throw new Error("Falha ao listar as integrações.");
 
-            const [vehiclePayload, integrationPayload] = await Promise.all([vehiclesResponse.json(), integrationsResponse.json()]);
+            const [vehiclePayload, integrationPayload, mePayload] = await Promise.all([
+                vehiclesResponse.json(),
+                integrationsResponse.json(),
+                meResponse.ok ? meResponse.json() as Promise<{ companyId?: string }> : Promise.resolve(null),
+            ]);
             const vehicleList = vehiclePayload as VehicleRecord[];
             setVehicles(vehicleList);
             setIntegrations(integrationPayload as IntegrationRecord[]);
             setSelectedId((current) => (current && vehicleList.some((vehicle) => vehicle.id === current) ? current : vehicleList[0]?.id ?? null));
+            setPublicCatalogLink(mePayload?.companyId && typeof window !== "undefined" ? `${window.location.origin}/estoque-publico/${mePayload.companyId}` : null);
             setError(null);
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "Falha ao carregar o estoque.");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleCopyPublicCatalogLink() {
+        if (!publicCatalogLink) return;
+
+        try {
+            await navigator.clipboard.writeText(publicCatalogLink);
+            setCopiedPublicCatalogLink(true);
+            window.setTimeout(() => setCopiedPublicCatalogLink(false), 2200);
+        } catch {
+            setError("Nao foi possivel copiar o link publico do estoque.");
         }
     }
 
@@ -303,8 +325,6 @@ export function InventoryStudio() {
     }
 
     const publishedVehicles = vehicles.filter((vehicle) => vehicle.publications.length > 0).length;
-    const highlightedVehicles = vehicles.filter((vehicle) => vehicle.featured).length;
-
     return (
         <>
             <div className="grid gap-6">
@@ -330,6 +350,16 @@ export function InventoryStudio() {
                                     className="w-full bg-transparent text-sm text-io-dark outline-none placeholder:text-black/35"
                                 />
                             </label>
+
+                            <button
+                                type="button"
+                                onClick={handleCopyPublicCatalogLink}
+                                disabled={!publicCatalogLink}
+                                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-black/12 bg-white px-5 text-sm font-semibold text-black/70 transition hover:border-black/20 hover:text-black disabled:cursor-not-allowed disabled:opacity-55"
+                            >
+                                {copiedPublicCatalogLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                {copiedPublicCatalogLink ? "Link copiado" : "Copiar link publico do estoque"}
+                            </button>
 
                             <button
                                 type="button"
@@ -516,9 +546,6 @@ export function InventoryStudio() {
 
 function InventoryVehicleCard({ vehicle, onEdit }: { vehicle: VehicleRecord; onEdit: () => void }) {
     const imageUrl = getVehicleImage(vehicle);
-    const publicationLabel = vehicle.publications.length
-        ? `${vehicle.publications.length} plataforma${vehicle.publications.length > 1 ? "s" : ""}`
-        : "Sem plataformas ativas";
 
     return (
         <article className="group overflow-hidden rounded-[30px] border border-black/10 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
@@ -535,19 +562,9 @@ function InventoryVehicleCard({ vehicle, onEdit }: { vehicle: VehicleRecord; onE
                 )}
 
                 <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
-                    <span className={`rounded-full px-3 py-2 text-[11px] font-semibold ${vehicle.featured ? "bg-[#f9425f] text-white" : "bg-white/92 text-black/70"}`}>
+                    <span className={`rounded-full px-3 py-2 text-[11px] font-semibold shadow-sm ${vehicle.featured ? "bg-[#f9425f] text-white" : "bg-white text-black/70"}`}>
                         {vehicle.featured ? "Patrocinado" : "Em estoque"}
                     </span>
-                    <div className="flex flex-wrap justify-end gap-2">
-                        {vehicle.publications.slice(0, 3).map((publication) => (
-                            <PublicationBadge key={publication.id} publication={publication} />
-                        ))}
-                        {vehicle.publications.length > 3 ? (
-                            <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-white/20 bg-black/55 px-3 text-[11px] font-semibold text-white">
-                                +{vehicle.publications.length - 3}
-                            </span>
-                        ) : null}
-                    </div>
                 </div>
             </div>
 
@@ -568,14 +585,11 @@ function InventoryVehicleCard({ vehicle, onEdit }: { vehicle: VehicleRecord; onE
                 </div>
 
                 <div className="mt-5 rounded-[24px] bg-[#faf8f4] px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/36">Plataformas</p>
-                            <p className="mt-1 text-sm text-black/58">{publicationLabel}</p>
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2">
+                    <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/36">Plataformas</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
                             {vehicle.publications.length ? (
-                                vehicle.publications.map((publication) => <PublicationBadge key={publication.id} publication={publication} compact />)
+                                vehicle.publications.map((publication) => <PublicationBadge key={publication.id} publication={publication} size="sm" />)
                             ) : (
                                 <span className="inline-flex items-center rounded-full bg-white px-3 py-2 text-xs text-black/48">Nenhuma ativa</span>
                             )}
@@ -615,12 +629,13 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
     );
 }
 
-function PublicationBadge({ publication, compact = false }: { publication: VehiclePublication; compact?: boolean }) {
+function PublicationBadge({ publication, size = "md" }: { publication: VehiclePublication; size?: "sm" | "md" }) {
     const config = getPublicationBadgeConfig(publication);
+    const sizeClassName = size === "sm" ? "h-8 min-w-8 px-2.5 text-[10px]" : "h-10 min-w-10 px-3 text-[11px]";
     return (
         <span
             title={config.label}
-            className={`inline-flex items-center justify-center rounded-full border px-3 font-semibold ${config.className} ${compact ? "h-9 min-w-9 text-[11px]" : "h-10 min-w-10 text-[11px]"}`}
+            className={`inline-flex items-center justify-center rounded-full border font-semibold ${config.className} ${sizeClassName}`}
         >
             {config.shortLabel}
         </span>

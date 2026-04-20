@@ -182,4 +182,62 @@ export type SignupStatus = {
     accessReady: boolean;
     loginEmail: string;
     companyName: string;
+    temporaryPassword: string;
+};
+
+export type PublicInventoryCompany = {
+    id: string;
+    name: string;
+    profileImageUrl: string | null;
+    whatsappNumber: string | null;
+};
+
+export type PublicInventoryBanner = {
+    vehicleId: string;
+    title: string;
+    subtitle: string;
+    imageUrl: string | null;
+    priceCents: number | null;
+    city: string | null;
+    state: string | null;
+    modelYear: number | null;
+    featured: boolean;
+};
+
+export type PublicInventoryVehicle = {
+    id: string;
+    stockNumber: string | null;
+    title: string;
+    brand: string;
+    model: string;
+    version: string | null;
+    modelYear: number | null;
+    manufactureYear: number | null;
+    priceCents: number | null;
+    mileage: number | null;
+    transmission: string | null;
+    fuelType: string | null;
+    bodyType: string | null;
+    color: string | null;
+    plateFinal: string | null;
+    city: string | null;
+    state: string | null;
+    featured: boolean;
+    status: string;
+    description: string | null;
+    coverImageUrl: string | null;
+    gallery: string[];
+    optionals: string[];
+    updatedAt: string | null;
+};
+
+export type PublicInventoryCatalog = {
+    company: PublicInventoryCompany;
+    banners: PublicInventoryBanner[];
+    vehicles: PublicInventoryVehicle[];
+};
+
+export type PublicVehicleDetail = {
+    company: PublicInventoryCompany;
+    vehicle: PublicInventoryVehicle;
 };

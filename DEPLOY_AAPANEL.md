@@ -6,7 +6,7 @@ Este repositorio foi reorganizado para rodar o IOAuto em uma VPS propria com:
 - `api` em Spring Boot
 - `postgres` em container
 - `redis` externo ou compartilhado da VPS
-- Stripe para assinatura recorrente
+- Asaas para assinatura recorrente
 
 ## Arquivos principais
 
@@ -62,9 +62,9 @@ cp .env.vps .env
 
 Ajuste pelo menos:
 
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_ID`
+- `ASAAS_API_KEY`
+- `ASAAS_WEBHOOK_TOKEN`
+- `IOAUTO_PLAN_VALUE`
 
 Os segredos de JWT e criptografia podem ser mantidos conforme o `.env.vps` gerado.
 Importante: `JWT_SECRET_FOR_MIDDLEWARE` precisa ser igual a `JWT_SECRET`.
@@ -147,19 +147,25 @@ Depois mantenha:
 - `APP_CORS_ALLOWED_ORIGINS=https://ioauto.ioconnect.com.br,https://app.ioauto.ioconnect.com.br`
 - `AUTH_COOKIE_SECURE=true`
 
-## 7. Stripe webhook
+## 7. Asaas webhook
 
-Cadastre no Stripe um endpoint apontando para:
+Cadastre no Asaas um endpoint apontando para:
 
 ```text
-https://api.ioauto.ioconnect.com.br/webhooks/stripe/billing
+https://api.ioauto.ioconnect.com.br/webhooks/asaas/billing
 ```
 
-Copie o segredo gerado para:
+No webhook, configure o mesmo token em:
 
-- `STRIPE_WEBHOOK_SECRET`
+- `ASAAS_WEBHOOK_TOKEN`
 
-O `STRIPE_PRICE_ID` deve ser um preco recorrente em modo assinatura.
+Mantenha tambem:
+
+- `ASAAS_API_KEY`
+- `ASAAS_API_BASE_URL=https://api.asaas.com/v3`
+- `ASAAS_CHECKOUT_BASE_URL=https://asaas.com`
+- `IOAUTO_PLAN_VALUE`
+- `ASAAS_BILLING_TYPES=CREDIT_CARD,BOLETO`
 
 ## 8. Smoke test
 
@@ -199,7 +205,7 @@ docker compose -f docker-compose.vps.yml up -d --build
 - landing: `/`
 - checkout: `/assinar`
 - sucesso: `/assinar/sucesso`
-- webhook Stripe: `/webhooks/stripe/billing`
+- webhook Asaas: `/webhooks/asaas/billing`
 
 ## 12. Integracoes operacionais
 

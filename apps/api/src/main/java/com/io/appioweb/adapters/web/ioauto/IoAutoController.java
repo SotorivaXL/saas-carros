@@ -188,6 +188,57 @@ public class IoAutoController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/public/stock/{companyId}")
+    public ResponseEntity<PublicInventoryCatalogHttpResponse> getPublicInventory(@PathVariable UUID companyId) {
+        var company = companies.findById(companyId).orElse(null);
+        if (company == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<JpaIoAutoVehicleEntity> companyVehicles = vehicles.findAllByCompanyIdOrderByUpdatedAtDesc(companyId);
+        Map<UUID, List<JpaIoAutoVehiclePublicationEntity>> publicationsByVehicle = groupPublicationsByVehicle(companyId, companyVehicles);
+
+        List<JpaIoAutoVehicleEntity> publicVehicles = companyVehicles.stream()
+                .filter(vehicle -> isVehiclePubliclyVisible(vehicle, publicationsByVehicle.getOrDefault(vehicle.getId(), List.of())))
+                .toList();
+
+        List<PublicInventoryVehicleHttpResponse> catalogVehicles = publicVehicles.stream()
+                .map(this::toPublicVehicleResponse)
+                .toList();
+
+        return ResponseEntity.ok(new PublicInventoryCatalogHttpResponse(
+                toPublicCompanySummary(company),
+                buildPublicCatalogBanners(publicVehicles),
+                catalogVehicles
+        ));
+    }
+
+    @GetMapping("/public/stock/{companyId}/vehicles/{vehicleId}")
+    public ResponseEntity<PublicVehicleDetailHttpResponse> getPublicVehicle(
+            @PathVariable UUID companyId,
+            @PathVariable UUID vehicleId
+    ) {
+        var company = companies.findById(companyId).orElse(null);
+        if (company == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        JpaIoAutoVehicleEntity vehicle = vehicles.findByIdAndCompanyId(vehicleId, companyId).orElse(null);
+        if (vehicle == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<JpaIoAutoVehiclePublicationEntity> vehiclePublications = publications.findAllByCompanyIdAndVehicleId(companyId, vehicleId);
+        if (!isVehiclePubliclyVisible(vehicle, vehiclePublications)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(new PublicVehicleDetailHttpResponse(
+                toPublicCompanySummary(company),
+                toPublicVehicleResponse(vehicle)
+        ));
+    }
+
     @PostMapping("/ioauto/vehicles")
     @Transactional
     public ResponseEntity<IoAutoVehicleHttpResponse> createVehicle(@Valid @RequestBody SaveVehicleHttpRequest request) {
@@ -458,6 +509,80 @@ public class IoAutoController {
         );
     }
 
+    private PublicCompanySummary toPublicCompanySummary(com.io.appioweb.domain.auth.entity.Company company) {
+        return new PublicCompanySummary(
+                company.id(),
+                normalizeText(company.name(), "Catalogo"),
+                normalizeNullableText(company.profileImageUrl()),
+                sanitizeWhatsappNumber(company.whatsappNumber())
+        );
+    }
+
+    private List<PublicCatalogBanner> buildPublicCatalogBanners(List<JpaIoAutoVehicleEntity> publicVehicles) {
+        return publicVehicles.stream()
+                .sorted(Comparator.comparing(JpaIoAutoVehicleEntity::isFeatured).reversed()
+                        .thenComparing(JpaIoAutoVehicleEntity::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(5)
+                .map(vehicle -> new PublicCatalogBanner(
+                        vehicle.getId(),
+                        vehicle.getTitle(),
+                        buildPublicVehicleSubtitle(vehicle),
+                        resolveVehicleImage(vehicle),
+                        vehicle.getPriceCents(),
+                        normalizeNullableText(vehicle.getCity()),
+                        normalizeNullableText(vehicle.getState()),
+                        vehicle.getModelYear(),
+                        vehicle.isFeatured()
+                ))
+                .toList();
+    }
+
+    private PublicInventoryVehicleHttpResponse toPublicVehicleResponse(JpaIoAutoVehicleEntity vehicle) {
+        return new PublicInventoryVehicleHttpResponse(
+                vehicle.getId(),
+                normalizeNullableText(vehicle.getStockNumber()),
+                vehicle.getTitle(),
+                vehicle.getBrand(),
+                vehicle.getModel(),
+                normalizeNullableText(vehicle.getVersion()),
+                vehicle.getModelYear(),
+                vehicle.getManufactureYear(),
+                vehicle.getPriceCents(),
+                vehicle.getMileage(),
+                normalizeNullableText(vehicle.getTransmission()),
+                normalizeNullableText(vehicle.getFuelType()),
+                normalizeNullableText(vehicle.getBodyType()),
+                normalizeNullableText(vehicle.getColor()),
+                normalizeNullableText(vehicle.getPlateFinal()),
+                normalizeNullableText(vehicle.getCity()),
+                normalizeNullableText(vehicle.getState()),
+                vehicle.isFeatured(),
+                normalizeText(vehicle.getStatus(), "READY"),
+                normalizeNullableText(vehicle.getDescription()),
+                normalizeNullableText(vehicle.getCoverImageUrl()),
+                readStringArray(vehicle.getGalleryJson()),
+                readStringArray(vehicle.getOptionalsJson()),
+                vehicle.getUpdatedAt()
+        );
+    }
+
+    private String buildPublicVehicleSubtitle(JpaIoAutoVehicleEntity vehicle) {
+        List<String> parts = new ArrayList<>();
+        if (normalizeText(vehicle.getVersion()).isBlank() == false) parts.add(vehicle.getVersion().trim());
+        if (normalizeText(vehicle.getFuelType()).isBlank() == false) parts.add(vehicle.getFuelType().trim());
+        if (normalizeText(vehicle.getTransmission()).isBlank() == false) parts.add(vehicle.getTransmission().trim());
+        if (parts.isEmpty()) return "Veiculo disponivel no estoque";
+        return String.join(" • ", parts);
+    }
+
+    private String resolveVehicleImage(JpaIoAutoVehicleEntity vehicle) {
+        String coverImage = normalizeNullableText(vehicle.getCoverImageUrl());
+        if (coverImage != null) return coverImage;
+
+        List<String> gallery = readStringArray(vehicle.getGalleryJson());
+        return gallery.isEmpty() ? null : gallery.get(0);
+    }
+
     private JpaIoAutoIntegrationEntity resolveOrCreateIntegration(UUID companyId, String providerKey, Instant now) {
         return integrations.findByCompanyIdAndProviderKey(companyId, providerKey)
                 .orElseGet(() -> {
@@ -679,6 +804,27 @@ public class IoAutoController {
         return !"REMOVED".equals(normalized) && !"SOLD".equals(normalized) && !"ARCHIVED".equals(normalized);
     }
 
+    private boolean isVehiclePubliclyVisible(
+            JpaIoAutoVehicleEntity vehicle,
+            List<JpaIoAutoVehiclePublicationEntity> vehiclePublications
+    ) {
+        String vehicleStatus = normalizeText(vehicle.getStatus(), "DRAFT").toUpperCase(Locale.ROOT);
+        if ("DRAFT".equals(vehicleStatus) || "ARCHIVED".equals(vehicleStatus) || "SOLD".equals(vehicleStatus)) {
+            return false;
+        }
+
+        return vehiclePublications.stream()
+                .map(JpaIoAutoVehiclePublicationEntity::getStatus)
+                .map(this::normalizeText)
+                .map(status -> status.toUpperCase(Locale.ROOT))
+                .noneMatch("SOLD"::equals);
+    }
+
+    private String sanitizeWhatsappNumber(String raw) {
+        String digits = normalizeText(raw).replaceAll("\\D", "");
+        return digits.isBlank() ? null : digits;
+    }
+
     private String normalizeSourcePlatform(String value) {
         return normalizeText(value, "OTHER").toUpperCase(Locale.ROOT);
     }
@@ -815,6 +961,68 @@ public class IoAutoController {
                 String externalUrl
         ) {
         }
+    }
+
+    public record PublicInventoryCatalogHttpResponse(
+            PublicCompanySummary company,
+            List<PublicCatalogBanner> banners,
+            List<PublicInventoryVehicleHttpResponse> vehicles
+    ) {
+    }
+
+    public record PublicVehicleDetailHttpResponse(
+            PublicCompanySummary company,
+            PublicInventoryVehicleHttpResponse vehicle
+    ) {
+    }
+
+    public record PublicCompanySummary(
+            UUID id,
+            String name,
+            String profileImageUrl,
+            String whatsappNumber
+    ) {
+    }
+
+    public record PublicCatalogBanner(
+            UUID vehicleId,
+            String title,
+            String subtitle,
+            String imageUrl,
+            Long priceCents,
+            String city,
+            String state,
+            Integer modelYear,
+            boolean featured
+    ) {
+    }
+
+    public record PublicInventoryVehicleHttpResponse(
+            UUID id,
+            String stockNumber,
+            String title,
+            String brand,
+            String model,
+            String version,
+            Integer modelYear,
+            Integer manufactureYear,
+            Long priceCents,
+            Integer mileage,
+            String transmission,
+            String fuelType,
+            String bodyType,
+            String color,
+            String plateFinal,
+            String city,
+            String state,
+            boolean featured,
+            String status,
+            String description,
+            String coverImageUrl,
+            List<String> gallery,
+            List<String> optionals,
+            Instant updatedAt
+    ) {
     }
 
     public record IoAutoIntegrationHttpResponse(

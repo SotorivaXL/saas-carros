@@ -7,20 +7,20 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class StripeWebhookController {
+public class AsaasWebhookController {
 
     private final IoAutoBillingService billingService;
 
-    public StripeWebhookController(IoAutoBillingService billingService) {
+    public AsaasWebhookController(IoAutoBillingService billingService) {
         this.billingService = billingService;
     }
 
-    @PostMapping("/webhooks/stripe/billing")
-    public ResponseEntity<Void> handleStripeWebhook(
+    @PostMapping("/webhooks/asaas/billing")
+    public ResponseEntity<Void> handleAsaasWebhook(
             @RequestBody String payload,
-            @RequestHeader(name = "Stripe-Signature", required = false) String signature
+            @RequestHeader(name = "asaas-access-token", required = false) String authToken
     ) {
-        billingService.handleStripeWebhook(payload, signature);
-        return ResponseEntity.noContent().build();
+        billingService.handleAsaasWebhook(payload, authToken);
+        return ResponseEntity.ok().build();
     }
 }
