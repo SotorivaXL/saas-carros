@@ -8,10 +8,14 @@ import com.io.appioweb.application.auth.port.out.TokenServicePort;
 import com.io.appioweb.application.auth.port.out.UserRepositoryPort;
 import com.io.appioweb.domain.auth.entity.User;
 import com.io.appioweb.shared.errors.BusinessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
 public class LoginUseCase implements AuthUseCase {
+    private static final Logger log = LoggerFactory.getLogger(LoginUseCase.class);
+
     private final UserRepositoryPort users;
     private final PasswordHasherPort hasher;
     private final TokenServicePort tokens;
@@ -24,13 +28,37 @@ public class LoginUseCase implements AuthUseCase {
 
     @Override
     public AuthTokens login(LoginCommand command) {
-        // Multiempresa mínimo: se existir email em apenas um tenant, loga.
-        Optional<User> opt = users.findByEmailGlobal(command.email());
-        User user = opt.orElseThrow(() -> new BusinessException("AUTH_INVALID", "Credenciais inválidas"));
+        String normalizedEmail = command.email() == null ? null : command.email().trim().toLowerCase();
 
-        if (!user.isActive()) throw new BusinessException("AUTH_INACTIVE", "Usuário inativo");
-        if (!hasher.matches(command.password(), user.passwordHash()))
-            throw new BusinessException("AUTH_INVALID", "Credenciais inválidas");
+        // Multiempresa minimo: se existir email em apenas um tenant, loga.
+        Optional<User> opt = users.findByEmailGlobal(normalizedEmail);
+        if (opt.isEmpty()) {
+            log.warn("Login failed: user not found for email={}", normalizedEmail);
+            throw new BusinessException("AUTH_INVALID", "Credenciais invalidas");
+        }
+
+        User user = opt.get();
+        if (!user.isActive()) {
+            log.warn("Login failed: inactive user id={} email={}", user.id(), user.email());
+            throw new BusinessException("AUTH_INACTIVE", "Usuario inativo");
+        }
+
+        boolean matches = hasher.matches(command.password(), user.passwordHash());
+        log.info(
+                "Login check: requestedEmail={} resolvedUserId={} resolvedEmail={} active={} rawPasswordLength={} hashLength={} hashPrefix={} bcryptMatches={}",
+                normalizedEmail,
+                user.id(),
+                user.email(),
+                user.isActive(),
+                command.password() == null ? null : command.password().length(),
+                user.passwordHash() == null ? null : user.passwordHash().length(),
+                hashPrefix(user.passwordHash()),
+                matches
+        );
+
+        if (!matches) {
+            throw new BusinessException("AUTH_INVALID", "Credenciais invalidas");
+        }
 
         return tokens.issueTokens(user);
     }
@@ -44,5 +72,10 @@ public class LoginUseCase implements AuthUseCase {
     @Override
     public AuthTokens refresh(String refreshToken) {
         return tokens.rotateRefresh(refreshToken);
+    }
+
+    private String hashPrefix(String hash) {
+        if (hash == null || hash.isBlank()) return "<empty>";
+        return hash.length() <= 7 ? hash : hash.substring(0, 7);
     }
 }

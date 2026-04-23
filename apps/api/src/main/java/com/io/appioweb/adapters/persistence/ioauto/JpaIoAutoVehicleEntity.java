@@ -33,6 +33,9 @@ public class JpaIoAutoVehicleEntity {
     @Column(length = 160)
     private String version;
 
+    @Column(length = 120)
+    private String engine;
+
     @Column(name = "model_year")
     private Integer modelYear;
 
@@ -83,6 +86,9 @@ public class JpaIoAutoVehicleEntity {
 
     @Column(name = "optionals_json", nullable = false, columnDefinition = "text")
     private String optionalsJson = "[]";
+
+    @Column(name = "financing_json", nullable = false, columnDefinition = "text")
+    private String financingJson = "{}";
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -144,6 +150,14 @@ public class JpaIoAutoVehicleEntity {
 
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    public String getEngine() {
+        return engine;
+    }
+
+    public void setEngine(String engine) {
+        this.engine = engine;
     }
 
     public Integer getModelYear() {
@@ -280,6 +294,14 @@ public class JpaIoAutoVehicleEntity {
 
     public void setOptionalsJson(String optionalsJson) {
         this.optionalsJson = optionalsJson;
+    }
+
+    public String getFinancingJson() {
+        return financingJson;
+    }
+
+    public void setFinancingJson(String financingJson) {
+        this.financingJson = financingJson;
     }
 
     public Instant getCreatedAt() {

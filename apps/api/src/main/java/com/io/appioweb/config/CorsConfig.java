@@ -34,10 +34,14 @@ public class CorsConfig {
         source.registerCorsConfiguration("/webhooks/**", webhookConfig);
 
         CorsConfiguration appConfig = new CorsConfiguration();
-        appConfig.setAllowedOrigins(appAllowedOrigins);
+        // Use origin patterns so local development origins are matched reliably,
+        // including explicit localhost/127.0.0.1 entries provided via env.
+        appConfig.setAllowedOriginPatterns(appAllowedOrigins);
         appConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         appConfig.setAllowedHeaders(List.of("*"));
+        appConfig.setExposedHeaders(List.of("Authorization"));
         appConfig.setAllowCredentials(true);
+        appConfig.setMaxAge(3600L);
         source.registerCorsConfiguration("/**", appConfig);
 
         return source;

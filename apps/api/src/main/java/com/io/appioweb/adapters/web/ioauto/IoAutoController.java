@@ -562,9 +562,12 @@ public class IoAutoController {
         entity.setTitle(requireText(request.title(), "Informe um título para o anúncio."));
         entity.setBrand(requireText(request.brand(), "Informe a marca do veículo."));
         entity.setModel(requireText(request.model(), "Informe o modelo do veículo."));
-        entity.setVersion(normalizeNullableText(request.version()));
-        entity.setModelYear(request.modelYear());
-        entity.setManufactureYear(request.manufactureYear());
+        String normalizedEngine = normalizeNullableText(request.engine());
+        Integer resolvedYear = resolveVehicleYear(request.year(), request.modelYear(), request.manufactureYear());
+        entity.setVersion(normalizedEngine != null ? normalizedEngine : normalizeNullableText(request.version()));
+        entity.setEngine(normalizedEngine);
+        entity.setModelYear(resolvedYear);
+        entity.setManufactureYear(resolvedYear);
         entity.setPriceCents(request.priceCents());
         entity.setMileage(request.mileage());
         entity.setTransmission(normalizeNullableText(request.transmission()));
@@ -580,6 +583,7 @@ public class IoAutoController {
         entity.setCoverImageUrl(normalizeNullableText(request.coverImageUrl()));
         entity.setGalleryJson(writeStringArray(request.gallery()));
         entity.setOptionalsJson(writeStringArray(request.optionals()));
+        entity.setFinancingJson(writeVehicleFinancing(request.financing()));
         entity.setUpdatedAt(now);
         vehicles.save(entity);
 
@@ -666,6 +670,8 @@ public class IoAutoController {
                 vehicle.getBrand(),
                 vehicle.getModel(),
                 normalizeNullableText(vehicle.getVersion()),
+                normalizeNullableText(vehicle.getEngine()),
+                resolveVehicleYear(vehicle),
                 vehicle.getModelYear(),
                 vehicle.getManufactureYear(),
                 vehicle.getPriceCents(),
@@ -683,6 +689,7 @@ public class IoAutoController {
                 normalizeNullableText(vehicle.getCoverImageUrl()),
                 readStringArray(vehicle.getGalleryJson()),
                 readStringArray(vehicle.getOptionalsJson()),
+                readVehicleFinancing(vehicle.getFinancingJson()),
                 publicationSummaries,
                 vehicle.getUpdatedAt()
         );
@@ -785,6 +792,8 @@ public class IoAutoController {
                 vehicle.getBrand(),
                 vehicle.getModel(),
                 normalizeNullableText(vehicle.getVersion()),
+                normalizeNullableText(vehicle.getEngine()),
+                resolveVehicleYear(vehicle),
                 vehicle.getModelYear(),
                 vehicle.getManufactureYear(),
                 vehicle.getPriceCents(),
@@ -802,13 +811,15 @@ public class IoAutoController {
                 normalizeNullableText(vehicle.getCoverImageUrl()),
                 readStringArray(vehicle.getGalleryJson()),
                 readStringArray(vehicle.getOptionalsJson()),
+                readVehicleFinancing(vehicle.getFinancingJson()),
                 vehicle.getUpdatedAt()
         );
     }
 
     private String buildPublicVehicleSubtitle(JpaIoAutoVehicleEntity vehicle) {
         List<String> parts = new ArrayList<>();
-        if (normalizeText(vehicle.getVersion()).isBlank() == false) parts.add(vehicle.getVersion().trim());
+        if (normalizeText(vehicle.getEngine()).isBlank() == false) parts.add(vehicle.getEngine().trim());
+        if (parts.isEmpty() && normalizeText(vehicle.getVersion()).isBlank() == false) parts.add(vehicle.getVersion().trim());
         if (normalizeText(vehicle.getFuelType()).isBlank() == false) parts.add(vehicle.getFuelType().trim());
         if (normalizeText(vehicle.getTransmission()).isBlank() == false) parts.add(vehicle.getTransmission().trim());
         if (parts.isEmpty()) return "Veiculo disponivel no estoque";
@@ -843,6 +854,16 @@ public class IoAutoController {
         return "CONNECTED".equalsIgnoreCase(integration.getStatus()) || "ACTIVE".equalsIgnoreCase(integration.getStatus())
                 ? "READY_TO_SYNC"
                 : "WAITING_CONFIGURATION";
+    }
+
+    private Integer resolveVehicleYear(Integer year, Integer modelYear, Integer manufactureYear) {
+        if (year != null) return year;
+        if (modelYear != null) return modelYear;
+        return manufactureYear;
+    }
+
+    private Integer resolveVehicleYear(JpaIoAutoVehicleEntity vehicle) {
+        return resolveVehicleYear(null, vehicle.getModelYear(), vehicle.getManufactureYear());
     }
 
     private List<String> sanitizeIntegrationKeys(List<String> values) {
@@ -884,6 +905,39 @@ public class IoAutoController {
         } catch (Exception ignored) {
             return List.of();
         }
+    }
+
+    private String writeVehicleFinancing(VehicleFinancingHttpRequest financing) {
+        try {
+            VehicleFinancingHttpResponse normalized = sanitizeVehicleFinancing(
+                    financing == null ? null : financing.downPaymentCents(),
+                    financing == null ? null : financing.installmentCount(),
+                    financing == null ? null : financing.installmentValueCents()
+            );
+            return OBJECT_MAPPER.writeValueAsString(normalized);
+        } catch (Exception exception) {
+            throw new BusinessException("IOAUTO_FINANCING_SERIALIZATION_FAILED", "NÃ£o foi possÃ­vel salvar as condiÃ§Ãµes de financiamento.");
+        }
+    }
+
+    private VehicleFinancingHttpResponse readVehicleFinancing(String raw) {
+        try {
+            VehicleFinancingHttpResponse financing = OBJECT_MAPPER.readValue(normalizeText(raw, "{}"), VehicleFinancingHttpResponse.class);
+            return sanitizeVehicleFinancing(financing.downPaymentCents(), financing.installmentCount(), financing.installmentValueCents());
+        } catch (Exception ignored) {
+            return sanitizeVehicleFinancing(null, null, null);
+        }
+    }
+
+    private VehicleFinancingHttpResponse sanitizeVehicleFinancing(Long downPaymentCents, Integer installmentCount, Long installmentValueCents) {
+        Long normalizedDownPayment = normalizeNonNegativeLong(downPaymentCents);
+        Integer normalizedInstallments = normalizePositiveInteger(installmentCount);
+        Long normalizedInstallmentValue = normalizeNonNegativeLong(installmentValueCents);
+        if (normalizedInstallments == null || normalizedInstallmentValue == null) {
+            normalizedInstallments = null;
+            normalizedInstallmentValue = null;
+        }
+        return new VehicleFinancingHttpResponse(normalizedDownPayment, normalizedInstallments, normalizedInstallmentValue);
     }
 
     private String writeJsonObject(Map<String, String> values) {
@@ -1183,6 +1237,16 @@ public class IoAutoController {
         return normalized.isBlank() ? fallback : normalized;
     }
 
+    private Long normalizeNonNegativeLong(Long value) {
+        if (value == null || value < 0) return null;
+        return value;
+    }
+
+    private Integer normalizePositiveInteger(Integer value) {
+        if (value == null || value <= 0) return null;
+        return value;
+    }
+
     private String defaultIntegrationLabel(String providerKey) {
         String normalized = normalizeProviderKey(providerKey);
         return switch (normalized) {
@@ -1265,6 +1329,8 @@ public class IoAutoController {
             String brand,
             String model,
             String version,
+            String engine,
+            Integer year,
             Integer modelYear,
             Integer manufactureYear,
             Long priceCents,
@@ -1282,6 +1348,7 @@ public class IoAutoController {
             String coverImageUrl,
             List<String> gallery,
             List<String> optionals,
+            VehicleFinancingHttpResponse financing,
             List<PublicationSummary> publications,
             Instant updatedAt
     ) {
@@ -1337,6 +1404,8 @@ public class IoAutoController {
             String brand,
             String model,
             String version,
+            String engine,
+            Integer year,
             Integer modelYear,
             Integer manufactureYear,
             Long priceCents,
@@ -1354,6 +1423,7 @@ public class IoAutoController {
             String coverImageUrl,
             List<String> gallery,
             List<String> optionals,
+            VehicleFinancingHttpResponse financing,
             Instant updatedAt
     ) {
     }
@@ -1443,6 +1513,8 @@ public class IoAutoController {
             @NotBlank(message = "Informe a marca.") String brand,
             @NotBlank(message = "Informe o modelo.") String model,
             String version,
+            String engine,
+            Integer year,
             Integer modelYear,
             Integer manufactureYear,
             Long priceCents,
@@ -1460,7 +1532,22 @@ public class IoAutoController {
             String coverImageUrl,
             List<String> gallery,
             List<String> optionals,
+            VehicleFinancingHttpRequest financing,
             List<String> targetIntegrations
+    ) {
+    }
+
+    public record VehicleFinancingHttpRequest(
+            Long downPaymentCents,
+            Integer installmentCount,
+            Long installmentValueCents
+    ) {
+    }
+
+    public record VehicleFinancingHttpResponse(
+            Long downPaymentCents,
+            Integer installmentCount,
+            Long installmentValueCents
     ) {
     }
 

@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-    --io-purple: #6d5efc;
-    --io-purple-2: #9f8cff;
-    --io-dark: #121212;
+    --io-purple: #6b00e3;
+    --io-purple-2: #8431e2;
+    --io-dark: #212121;
     --io-white: #ffffff;
-    --io-light: #f3f3f3;
+    --io-light: #f8f9fa;
     --io-slate: #7a7a7a;
     --io-panel: #ebebeb;
 
@@ -47,11 +47,8 @@ html {
 
 body {
     margin: 0;
-    background:
-        radial-gradient(circle at top left, rgba(109, 94, 252, 0.08), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.08), transparent 24%),
-        #f3f3f3;
-    color: #121212;
+    background: var(--io-light);
+    color: var(--io-dark);
     font-family: var(--font-body), sans-serif;
 }
 

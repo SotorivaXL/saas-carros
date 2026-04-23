@@ -62,6 +62,12 @@ export type VehiclePublication = {
     externalUrl: string | null;
 };
 
+export type VehicleFinancing = {
+    downPaymentCents: number | null;
+    installmentCount: number | null;
+    installmentValueCents: number | null;
+};
+
 export type VehicleRecord = {
     id: string;
     stockNumber: string | null;
@@ -69,6 +75,8 @@ export type VehicleRecord = {
     brand: string;
     model: string;
     version: string | null;
+    engine: string | null;
+    year: number | null;
     modelYear: number | null;
     manufactureYear: number | null;
     priceCents: number | null;
@@ -86,6 +94,7 @@ export type VehicleRecord = {
     coverImageUrl: string | null;
     gallery: string[];
     optionals: string[];
+    financing: VehicleFinancing;
     publications: VehiclePublication[];
     updatedAt: string | null;
 };
@@ -212,6 +221,8 @@ export type PublicInventoryVehicle = {
     brand: string;
     model: string;
     version: string | null;
+    engine: string | null;
+    year: number | null;
     modelYear: number | null;
     manufactureYear: number | null;
     priceCents: number | null;
@@ -229,6 +240,7 @@ export type PublicInventoryVehicle = {
     coverImageUrl: string | null;
     gallery: string[];
     optionals: string[];
+    financing: VehicleFinancing;
     updatedAt: string | null;
 };
 

@@ -24,6 +24,7 @@ Thumbs.db
 **/.cache/
 **/coverage/
 **/*.tsbuildinfo
+apps/web/public/uploads/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

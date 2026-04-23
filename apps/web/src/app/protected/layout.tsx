@@ -50,12 +50,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     }
 
     return (
-        <div className="min-h-screen bg-[#f3f3f3] md:h-screen md:overflow-hidden">
+        <div className="min-h-screen bg-io-light md:h-screen md:overflow-hidden">
             <AuthSessionWatcher />
-            <div className="pointer-events-none fixed inset-0 overflow-hidden">
-                <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-black/10 blur-3xl" />
-                <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white blur-3xl" />
-            </div>
+
 
             <div className="relative flex min-h-screen flex-col md:h-screen md:min-h-0 md:flex-row md:overflow-hidden">
                 <ProtectedSidebar user={me} />

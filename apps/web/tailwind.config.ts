@@ -8,11 +8,11 @@ const config: Config = {
         extend: {
             colors: {
                 io: {
-                    purple: "#6d5efc",
-                    purple2: "#9f8cff",
-                    dark: "#121212",
+                    purple: "#6b00e3",
+                    purple2: "#8431e2",
+                    dark: "#212121",
                     white: "#ffffff",
-                    light: "#f3f3f3",
+                    light: "#f8f9fa",
                     slate: "#7a7a7a",
                     panel: "#ebebeb",
                 },

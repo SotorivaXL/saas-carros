@@ -92,20 +92,20 @@ export function ProtectedSidebar({ user }: { user: CurrentUser | null }) {
     }
 
     return (
-        <aside className={`border-b border-black/10 bg-white/80 backdrop-blur-xl md:h-screen md:border-b-0 md:border-r ${collapsed ? "md:w-[96px]" : "md:w-[304px]"}`}>
+        <aside className={`bg-io-dark text-white md:h-screen md:border-r md:border-white/10 ${collapsed ? "md:w-[96px]" : "md:w-[304px]"}`}>
             <div className="flex items-center justify-between px-5 py-5">
-                <BrandMark href="/protected/dashboard" compact={collapsed} />
+                <BrandMark href="/protected/dashboard" compact={collapsed} variant="white" />
                 <button
                     type="button"
                     onClick={() => setCollapsed((value) => !value)}
-                    className="hidden h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white text-io-dark transition hover:border-black/20 hover:bg-black hover:text-white md:inline-flex"
+                    className="hidden h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:border-white/20 hover:bg-white/10 md:inline-flex"
                     aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
                 >
                     {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                 </button>
             </div>
 
-            <div className={`relative mx-4 rounded-[28px] border border-black/10 bg-io-dark px-4 py-4 text-white shadow-[0_20px_45px_rgba(0,0,0,0.18)] ${collapsed ? "grid place-items-center" : ""}`}>
+            <div className={`relative mx-4 rounded-[28px] border border-white/10 bg-white/5 px-4 py-4 text-white shadow-none ${collapsed ? "grid place-items-center" : ""}`}>
                 <Link
                     href="/protected/perfil"
                     className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/75 transition hover:border-white/30 hover:bg-white/20 hover:text-white"
@@ -141,8 +141,8 @@ export function ProtectedSidebar({ user }: { user: CurrentUser | null }) {
                             href={item.href}
                             className={`group flex items-center rounded-2xl px-3 py-3 text-sm font-medium transition ${
                                 active
-                                    ? "bg-black text-white shadow-[0_12px_24px_rgba(0,0,0,0.18)]"
-                                    : "text-black/65 hover:bg-black/5 hover:text-black"
+                                    ? "bg-gradient-to-r from-io-purple-2 to-[#5402b6] text-white shadow-md"
+                                    : "text-white/65 hover:bg-white/5 hover:text-white"
                             } ${collapsed ? "h-12 w-12 justify-center px-0" : "gap-3"}`}
                             title={item.label}
                         >
